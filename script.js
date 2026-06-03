@@ -25,8 +25,7 @@ const EQ_DEFS = {
     sub:       { label:'SUBWOOFER', color:'#ff3333', w:110, h:70, inputs:['IN'], outputs:[], icon:'💥' },
     headphone_amp: { label:'AMP FONE', color:'#cc88ff', w:120, h:70, inputs:['IN L','IN R'], outputs:['HP 1','HP 2','HP 3','HP 4'], icon:'🎧' },
     headphone_vol: { label:'REG. FONE', color:'#ff88cc', w:30, h:60, inputs:['IN'], outputs:['OUT'], icon:'🎚' },
-    cable_ramp: { label:'RÉGUA DE PASSAGEM', color:'#ffcc00', w:200, h:40, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['OUT 1','OUT 2','OUT 3','OUT 4','OUT 5','OUT 6','OUT 7','OUT 8'], icon:'⏚', isRamp:true },
-    speaker_box: { label:'CAIXA DE SOM', color:'#ff5555', w:100, h:120, inputs:['IN'], outputs:[], icon:'🔊', isSpeaker:true }
+    cable_ramp: { label:'RÉGUA DE PASSAGEM', color:'#ffcc00', w:200, h:40, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['OUT 1','OUT 2','OUT 3','OUT 4','OUT 5','OUT 6','OUT 7','OUT 8'], icon:'⏚', isRamp:true }
 };
 
 const CABLE_COLORS = ['#ff4444','#44aaff','#ffaa00','#aa44ff','#44ffaa','#ff44aa','#ffff44','#00ffff','#ff8844','#88ff44'];
@@ -472,10 +471,6 @@ function drawEquipment(eq, selected) {
     const sx = eq.rotation ? 0 : sp.x;
     const sy = eq.rotation ? 0 : sp.y;
 
-    // Verifica se é caixa de som e está desligada
-    const isSpeaker = def.isSpeaker || eq.isSpeaker;
-    const speakerEnabled = !isSpeaker || !eq.speakerConfig || eq.speakerConfig.enabled;
-
     if (eq.type === 'cable_ramp') {
         ctx.shadowColor = color;
         ctx.shadowBlur = selected ? 15 : 5;
@@ -508,10 +503,10 @@ function drawEquipment(eq, selected) {
         ctx.textBaseline = 'middle';
         ctx.fillText(eq.label || def.label, sx + bw / 2, sy + bh / 2);
     } else {
-        ctx.shadowColor = speakerEnabled ? color : '#666666';
+        ctx.shadowColor = color;
         ctx.shadowBlur = selected ? 20 : 8;
         ctx.fillStyle = selected ? getCSSVar('--eq-body-sel') : getCSSVar('--eq-body');
-        ctx.strokeStyle = selected ? (speakerEnabled ? color : '#888888') : getCSSVar('--border');
+        ctx.strokeStyle = selected ? color : getCSSVar('--border');
         ctx.lineWidth = selected ? 2 : 1;
         
         ctx.beginPath();
@@ -520,8 +515,8 @@ function drawEquipment(eq, selected) {
         ctx.stroke();
         ctx.shadowBlur = 0;
         
-        // Barra superior com cor indicativa de status
-        ctx.fillStyle = speakerEnabled ? color : '#666666';
+        // Barra superior com cor indicativa
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.roundRect(sx, sy, bw, 5, [4, 4, 0, 0]);
         ctx.fill();
@@ -529,17 +524,17 @@ function drawEquipment(eq, selected) {
         const iconSize = Math.min(18, bh * 0.25) * viewScale;
         ctx.font = `${iconSize}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.globalAlpha = speakerEnabled ? 1 : 0.5;
+        ctx.globalAlpha = 1;
         ctx.fillText(def.icon, sx + bw / 2, sy + bh * 0.4);
         
-        ctx.fillStyle = speakerEnabled ? color : '#888888';
+        ctx.fillStyle = color;
         ctx.font = `bold ${Math.max(9, 11 * viewScale)}px "Rajdhani", sans-serif`;
         ctx.fillText(eq.label || def.label, sx + bw / 2, sy + bh * 0.65);
         
         const inputs = eq.inputs || def.inputs;
         const outputs = eq.outputs || def.outputs;
         
-        if (!isSpeaker && (inputs.length > 0 || outputs.length > 0)) {
+        if (inputs.length > 0 || outputs.length > 0) {
             ctx.fillStyle = getCSSVar('--text-dim');
             ctx.font = `${Math.max(7, 9 * viewScale)}px "Share Tech Mono", monospace`;
             const inArrow = eq.portsFlipped ? '▲' : '▼';
@@ -550,14 +545,11 @@ function drawEquipment(eq, selected) {
     }
     
     ctx.shadowBlur = 0;
-    // Caixas de som não têm portas visíveis desenhadas
-    if (!isSpeaker) {
-        drawPorts(eq, 'input', sx, sy, bw, bh, color);
-        drawPorts(eq, 'output', sx, sy, bw, bh, color);
-    }
+    drawPorts(eq, 'input', sx, sy, bw, bh, color);
+    drawPorts(eq, 'output', sx, sy, bw, bh, color);
     
     if (selected) {
-        ctx.strokeStyle = speakerEnabled ? color : '#888888';
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 3]);
         ctx.globalAlpha = 0.5;
@@ -645,10 +637,6 @@ function addEquipment(type, wx, wy) {
         note: '',
         rotation: 0
     };
-    // Inicializa configuração de speaker se for caixa de som
-    if (def.isSpeaker) {
-        eq.speakerConfig = { type: 'full', quantity: 1, power: 500, enabled: true };
-    }
     equipments.push(eq);
     updateEqMap();
     updateSortedEquipments();
@@ -658,8 +646,7 @@ function addEquipment(type, wx, wy) {
 }
 
 function addSpeakerFromPanel() {
-    const center = screenToWorld(mainCanvas.width / 2, mainCanvas.height / 2);
-    addEquipment('speaker_box', center.x - 50, center.y - 60);
+    // Função removida - caixa de som foi descontinuada
 }
 
 function addEnvironment(type) {
@@ -1194,51 +1181,19 @@ function showEqProps(eq) {
     const inputs = eq.inputs || def.inputs;
     const outputs = eq.outputs || def.outputs;
     
-    // Configurações específicas para caixas de som
-    const isSpeaker = def.isSpeaker || eq.isSpeaker;
-    const speakerConfig = eq.speakerConfig || {
-        type: 'full',
-        quantity: 1,
-        power: 500,
-        enabled: true
-    };
-    
     const inPorts = inputs.map((p, i) => `
         <div class="port-tag">
             <div class="port-dot" style="background:#4488ff"></div>
             <input class="prop-input" style="flex:1;padding:2px 4px;font-size:11px"
                 value="${p}" onchange="renamePort(${eq.id},'input',${i},this.value)">
         </div>`).join('');
-        
+    
     const outPorts = outputs.map((p, i) => `
         <div class="port-tag">
             <div class="port-dot" style="background:${eq.color || def.color}"></div>
             <input class="prop-input" style="flex:1;padding:2px 4px;font-size:11px"
                 value="${p}" onchange="renamePort(${eq.id},'output',${i},this.value)">
         </div>`).join('');
-    
-    // Opções de tipos de falante
-    const speakerTypes = [
-        { value: 'full', label: 'Full Range' },
-        { value: 'line', label: 'Line Array' },
-        { value: 'point', label: 'Point Source' },
-        { value: 'monitor', label: 'Monitor Wedge' },
-        { value: 'column', label: 'Column Speaker' }
-    ];
-    
-    const speakerTypeOptions = speakerTypes.map(t => 
-        `<option value="${t.value}" ${speakerConfig.type === t.value ? 'selected' : ''}>${t.label}</option>`
-    ).join('');
-    
-    // Opções de quantidade (1-16)
-    const quantityOptions = Array.from({length: 16}, (_, i) => i + 1).map(q => 
-        `<option value="${q}" ${speakerConfig.quantity === q ? 'selected' : ''}>${q}</option>`
-    ).join('');
-    
-    // Opções de potência (100W - 5000W)
-    const powerOptions = [100, 150, 200, 250, 300, 400, 500, 600, 750, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000].map(p => 
-        `<option value="${p}" ${speakerConfig.power === p ? 'selected' : ''}>${p}W</option>`
-    ).join('');
         
     document.getElementById('props-content').innerHTML = `
         <div class="prop-title">${def.icon} ${def.label}</div>
@@ -1255,36 +1210,6 @@ function showEqProps(eq) {
             </div>
         </div>
         ` : ''}
-        ${isSpeaker ? `
-        <div class="prop-row">
-            <div class="prop-label">STATUS</div>
-            <button class="toolbar-btn" style="flex:1;padding:6px;background:${speakerConfig.enabled ? '#44ff88' : '#ff4444'};color:#000" onclick="toggleSpeakerEnabled(${eq.id})">
-                ${speakerConfig.enabled ? '✓ LIGADO' : '✕ DESLIGADO'}
-            </button>
-        </div>
-        <div class="prop-row">
-            <div class="prop-label">TIPO DE FALANTE</div>
-            <select class="prop-input" onchange="setSpeakerConfig(${eq.id}, 'type', this.value)" style="width:100%;padding:4px;font-size:12px">
-                ${speakerTypeOptions}
-            </select>
-        </div>
-        <div class="prop-row">
-            <div class="prop-label">QUANTIDADE DE FALANTES</div>
-            <select class="prop-input" onchange="setSpeakerConfig(${eq.id}, 'quantity', this.value)" style="width:100%;padding:4px;font-size:12px">
-                ${quantityOptions}
-            </select>
-        </div>
-        <div class="prop-row">
-            <div class="prop-label">POTÊNCIA POR FALANTE</div>
-            <select class="prop-input" onchange="setSpeakerConfig(${eq.id}, 'power', this.value)" style="width:100%;padding:4px;font-size:12px">
-                ${powerOptions}
-            </select>
-        </div>
-        <div class="prop-row" style="background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;margin-top:4px">
-            <div class="prop-label" style="font-size:10px;color:var(--text-dim)">POTÊNCIA TOTAL</div>
-            <div style="font-size:14px;color:#ffaa00;font-weight:bold">${speakerConfig.quantity * speakerConfig.power}W</div>
-        </div>
-        ` : ''}
         <div class="prop-row">
             <div class="prop-label">ROTAÇÃO: ${eq.rotation || 0}°</div>
             <div style="display:flex; gap:4px;">
@@ -1293,7 +1218,6 @@ function showEqProps(eq) {
                 <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEq(${eq.id}, 0)">0°</button>
             </div>
         </div>
-        ${!isSpeaker ? `
         <div class="prop-row">
             <div class="prop-label">ENTRADAS (${inputs.length})</div>
             <div class="port-list">${inPorts}</div>
@@ -1310,7 +1234,6 @@ function showEqProps(eq) {
                 <button class="toolbar-btn" style="flex:1;padding:4px" onclick="removePort(${eq.id},'output')">- REM</button>
             </div>
         </div>
-        ` : ''}
         ${eq.type === 'medusa' ? `
         <div class="prop-row">
             <div id="medusa-info">🐙 SNAKE MULTICORE<br>Configure as vias acima.<br>Conecte outputs ao palco<br>e inputs ao FOH.</div>
@@ -1319,9 +1242,7 @@ function showEqProps(eq) {
             <div class="prop-label">NOTA</div>
             <input class="prop-input" value="${eq.note || ''}" placeholder="ex: canal 1-8..." onchange="setEqNote(${eq.id},this.value)">
         </div>
-        ${!isSpeaker ? `
         <button class="prop-btn swap" onclick="swapPorts(${eq.id})" style="margin-top:4px">↕ INVERTER ENTRADAS / SAÍDAS</button>
-        ` : ''}
         <button class="prop-btn danger" onclick="deleteEq(${eq.id})">🗑 DELETAR EQUIPAMENTO</button>
     `;
 }
@@ -1371,30 +1292,6 @@ function rotateEq(id, angle) {
     const eq = equipments.find(e => e.id === id);
     if (eq) {
         eq.rotation = (eq.rotation || 0) + angle;
-        render();
-        save();
-        showEqProps(eq);
-    }
-}
-
-// Funções para caixas de som
-function toggleSpeakerEnabled(id) {
-    const eq = equipments.find(e => e.id === id);
-    if (eq && eq.speakerConfig) {
-        eq.speakerConfig.enabled = !eq.speakerConfig.enabled;
-        render();
-        save();
-        showEqProps(eq);
-    }
-}
-
-function setSpeakerConfig(id, key, value) {
-    const eq = equipments.find(e => e.id === id);
-    if (eq) {
-        if (!eq.speakerConfig) {
-            eq.speakerConfig = { type: 'full', quantity: 1, power: 500, enabled: true };
-        }
-        eq.speakerConfig[key] = key === 'quantity' || key === 'power' ? Number(value) : value;
         render();
         save();
         showEqProps(eq);
