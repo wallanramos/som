@@ -1845,9 +1845,6 @@ selectedCable = null;
 selectedEnv = null;
 showNoSel();
 resizeCanvases();
-<script src="script.js"></script>
-</body>
-</html>
 const EQ_DEFS = {
     guitar:    { label:'GUITARRA', color:'#ff6b35', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎸' },
     bass:      { label:'BAIXO', color:'#ff9933', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎸' },

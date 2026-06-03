@@ -1,1 +1,1 @@
-Nothing should be ignored based on the provided file changes, as they only include source files (.js, .css) and a modified HTML file. No build artifacts, dependencies, or temporary files are present in the change list.
+(script.js)
