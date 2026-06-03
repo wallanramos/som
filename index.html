@@ -1,0 +1,2455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL FLOW — Mapa de Palco</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap');
+
+:root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --panel: #16161f;
+    --border: #2a2a3a;
+    --accent: #00ff88;
+    --accent2: #ff6b35;
+    --accent3: #4488ff;
+    --accent4: #ffcc00;
+    --text: #e0e0f0;
+    --text-dim: #666680;
+    --eq-body: #141420;
+    --eq-body-sel: #1e1e2e;
+    --eq-port-in: #222233;
+    --zone-fill-stage: rgba(0,200,100,0.03);
+    --zone-fill-foh: rgba(0,100,255,0.03);
+    --zone-fill-mon: rgba(255,200,0,0.03);
+    --zone-stroke: rgba(255,255,255,0.05);
+    --zone-label: rgba(255,255,255,0.06);
+    --grid-line: rgba(255,255,255,0.03);
+    --shadow-alpha: 0.6;
+}
+
+:root[data-theme="light"] {
+    --bg: #f0f0f5;
+    --surface: #ffffff;
+    --panel: #e8e8f0;
+    --border: #c8c8d8;
+    --accent: #00aa55;
+    --accent2: #e05020;
+    --accent3: #2266dd;
+    --accent4: #cc9900;
+    --text: #1a1a2e;
+    --text-dim: #7777aa;
+    --eq-body: #ffffff;
+    --eq-body-sel: #eef0ff;
+    --eq-port-in: #dde0ee;
+    --zone-fill-stage: rgba(0,160,80,0.05);
+    --zone-fill-foh: rgba(0,80,200,0.05);
+    --zone-fill-mon: rgba(200,160,0,0.05);
+    --zone-stroke: rgba(0,0,0,0.08);
+    --zone-label: rgba(0,0,0,0.1);
+    --grid-line: rgba(0,0,0,0.05);
+    --shadow-alpha: 0.15;
+}
+
+#theme-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+
+#theme-toggle:hover { 
+    border-color: var(--accent); 
+    transform: rotate(20deg); 
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+#topbar {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+#topbar .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent);
+    white-space: nowrap;
+}
+
+.sep { 
+    width: 1px; 
+    height: 30px; 
+    background: var(--border); 
+}
+
+.toolbar-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.toolbar-btn:hover { 
+    border-color: var(--accent); 
+    color: var(--accent); 
+}
+
+.toolbar-btn.active { 
+    background: var(--accent); 
+    color: #000; 
+    border-color: var(--accent); 
+}
+
+.mode-group { 
+    display: flex; 
+    gap: 4px; 
+}
+
+#status-bar {
+    margin-left: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+#main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+#left-panel {
+    width: 220px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.panel-section {
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 10px 14px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.panel-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    display: block;
+}
+
+.item-list { 
+    padding: 4px 8px 10px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 3px; 
+}
+
+.eq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    cursor: grab;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+}
+
+.eq-item:hover { 
+    border-color: var(--accent); 
+    transform: translateX(2px); 
+}
+
+.eq-item:active { 
+    cursor: grabbing; 
+}
+
+.eq-dot {
+    width: 8px; 
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.eq-sub { 
+    font-size: 10px; 
+    color: var(--text-dim); 
+    font-weight: 400; 
+}
+
+#canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+#grid-canvas {
+    position: absolute;
+    top: 0; 
+    left: 0;
+    pointer-events: none;
+}
+
+#main-canvas {
+    position: absolute;
+    top: 0; 
+    left: 0;
+    cursor: default;
+}
+
+.zone-label {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.08);
+    pointer-events: none;
+    z-index: 0;
+}
+
+#right-panel {
+    width: 240px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+#props-panel {
+    flex: 1;
+    padding: 14px;
+    overflow-y: auto;
+}
+
+.prop-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    color: var(--accent);
+}
+
+.prop-row {
+    margin-bottom: 10px;
+}
+
+.prop-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.prop-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+}
+
+.prop-input:focus { 
+    border-color: var(--accent); 
+}
+
+.prop-input[type=number] { 
+    -moz-appearance: textfield; 
+}
+
+.prop-input[type=number]::-webkit-outer-spin-button,
+.prop-input[type=number]::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+}
+
+.prop-btn {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: all 0.15s;
+}
+
+.prop-btn:hover { 
+    border-color: var(--accent2); 
+    color: var(--accent2); 
+}
+
+.prop-btn.danger:hover { 
+    border-color: #ff3333; 
+    color: #ff3333; 
+}
+
+.prop-btn.swap:hover { 
+    border-color: var(--accent3); 
+    color: var(--accent3); 
+}
+
+.port-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.port-tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: 'Share Tech Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.port-dot { 
+    width: 6px; 
+    height: 6px; 
+    border-radius: 50%; 
+}
+
+.no-sel {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-top: 20px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+#cable-color-picker {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.cc-swatch {
+    width: 22px; 
+    height: 22px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.cc-swatch.active { 
+    border-color: #fff; 
+}
+
+#ctx-menu {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    min-width: 160px;
+    z-index: 9999;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+
+#ctx-menu.show { 
+    display: block; 
+}
+
+.ctx-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
+}
+
+.ctx-item:hover { 
+    background: var(--border); 
+}
+
+.ctx-item.danger { 
+    color: #ff5555; 
+}
+
+.ctx-sep { 
+    height: 1px; 
+    background: var(--border); 
+}
+
+#tooltip {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    font-size: 11px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+}
+
+#medusa-info {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--accent4);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+::-webkit-scrollbar { 
+    width: 4px; 
+}
+
+::-webkit-scrollbar-track { 
+    background: var(--bg); 
+}
+
+::-webkit-scrollbar-thumb { 
+    background: var(--border); 
+}
+</style>
+</head>
+<body>
+<div id="topbar">
+    <div class="logo">⚡ SIGNAL FLOW</div>
+    <div class="sep"></div>
+    <div class="mode-group">
+        <button class="toolbar-btn active" id="btn-select" onclick="setMode('select')">✥ SELECIONAR</button>
+        <button class="toolbar-btn" id="btn-cable" onclick="setMode('cable')">⌁ CABEAR</button>
+        <button class="toolbar-btn" id="btn-env" onclick="setMode('env')">🏗 AMBIENTE</button>
+        <button class="toolbar-btn" id="btn-pan" onclick="setMode('pan')">✋ MOVER TELA</button>
+    </div>
+    <div class="sep"></div>
+    <button class="toolbar-btn" onclick="clearAllCables()">✕ LIMPAR CABOS</button>
+    <button class="toolbar-btn" onclick="clearAll()">⚠ LIMPAR TUDO</button>
+    <button class="toolbar-btn" onclick="exportJSON()">↓ EXPORTAR</button>
+    <button class="toolbar-btn" onclick="document.getElementById('import-input').click()">↑ IMPORTAR</button>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importJSON(event)">
+    <div class="sep"></div>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
+    <div id="status-bar">MODO: SELECIONAR | EQUIPAMENTOS: 0 | CABOS: 0</div>
+</div>
+
+<div id="main">
+    <div id="left-panel">
+        <div class="panel-section" id="env-panel" style="display:none;">
+            <div class="panel-title">CRIAR AMBIENTE</div>
+            <div class="item-list">
+                <div class="eq-item" onclick="addEnvironment('wall')" style="cursor:pointer">
+                    <div class="eq-dot" style="background:#555566"></div>
+                    <div><div>ADICIONAR PAREDE</div><div class="eq-sub">Barreira física</div></div>
+                </div>
+                <div class="eq-item" onclick="addEnvironment('zone')" style="cursor:pointer">
+                    <div class="eq-dot" style="background:#00c864"></div>
+                    <div><div>ADICIONAR ZONA</div><div class="eq-sub">Separação de chão</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section" id="equip-panel">
+            <div class="panel-title">INSTRUMENTOS</div>
+            <div class="item-list">
+                <div class="eq-item" draggable="true" data-type="guitar" style="cursor:grab" ondragstart="dragStart(event,'guitar')">
+                    <div class="eq-dot" style="background:#ff6b35"></div>
+                    <div><div>GUITARRA</div><div class="eq-sub">1 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="bass" ondragstart="dragStart(event,'bass')">
+                    <div class="eq-dot" style="background:#ff9933"></div>
+                    <div><div>BAIXO</div><div class="eq-sub">1 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="keys" ondragstart="dragStart(event,'keys')">
+                    <div class="eq-dot" style="background:#ffcc00"></div>
+                    <div><div>TECLADO</div><div class="eq-sub">2 out (L/R)</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="drums" ondragstart="dragStart(event,'drums')">
+                    <div class="eq-dot" style="background:#ff4444"></div>
+                    <div><div>BATERIA</div><div class="eq-sub">multi out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="vocal" ondragstart="dragStart(event,'vocal')">
+                    <div class="eq-dot" style="background:#44aaff"></div>
+                    <div><div>MICROFONE</div><div class="eq-sub">1 out (XLR)</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="violin" ondragstart="dragStart(event,'violin')">
+                    <div class="eq-dot" style="background:#aa44ff"></div>
+                    <div><div>VIOLINO</div><div class="eq-sub">1 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="acoustic" ondragstart="dragStart(event,'acoustic')">
+                    <div class="eq-dot" style="background:#44ff88"></div>
+                    <div><div>VIOLÃO</div><div class="eq-sub">1 out</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section" id="proc-panel">
+            <div class="panel-title">PROCESSADORES</div>
+            <div class="item-list">
+                <div class="eq-item" draggable="true" data-type="di" ondragstart="dragStart(event,'di')">
+                    <div class="eq-dot" style="background:#00ff88"></div>
+                    <div><div>CAIXA DI</div><div class="eq-sub">1 in / 2 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="pedalboard" ondragstart="dragStart(event,'pedalboard')">
+                    <div class="eq-dot" style="background:#ff44aa"></div>
+                    <div><div>PEDALEIRA</div><div class="eq-sub">1 in / 1 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="amp" ondragstart="dragStart(event,'amp')">
+                    <div class="eq-dot" style="background:#ff6644"></div>
+                    <div><div>AMPLIFICADOR</div><div class="eq-sub">1 in / DI out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="preamp" ondragstart="dragStart(event,'preamp')">
+                    <div class="eq-dot" style="background:#66aaff"></div>
+                    <div><div>PRÉ-AMP</div><div class="eq-sub">1 in / 1 out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="splitter" ondragstart="dragStart(event,'splitter')">
+                    <div class="eq-dot" style="background:#ffaa44"></div>
+                    <div><div>SPLITTER</div><div class="eq-sub">1 in / 4 out</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section" id="rack-panel">
+            <div class="panel-title">MESA / RACK</div>
+            <div class="item-list">
+                <div class="eq-item" draggable="true" data-type="console" ondragstart="dragStart(event,'console')">
+                    <div class="eq-dot" style="background:#00ccff"></div>
+                    <div><div>MESA DE SOM</div><div class="eq-sub">multi in/out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="stagebox" ondragstart="dragStart(event,'stagebox')">
+                    <div class="eq-dot" style="background:#ffdd00"></div>
+                    <div><div>STAGEBOX</div><div class="eq-sub">multi in/out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="medusa" ondragstart="dragStart(event,'medusa')">
+                    <div class="eq-dot" style="background:#ff88ff"></div>
+                    <div><div>MEDUSA</div><div class="eq-sub">snake multicore</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="patch" ondragstart="dragStart(event,'patch')">
+                    <div class="eq-dot" style="background:#88ffaa"></div>
+                    <div><div>PATCH BAY</div><div class="eq-sub">multi in/out</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="power_amp" ondragstart="dragStart(event,'power_amp')">
+                    <div class="eq-dot" style="background:#ff5555"></div>
+                    <div><div>AMP DE POTÊNCIA</div><div class="eq-sub">2 in / 2 out</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section" id="mon-panel">
+            <div class="panel-title">MONITORAÇÃO</div>
+            <div class="item-list">
+                <div class="eq-item" draggable="true" data-type="monitor" ondragstart="dragStart(event,'monitor')">
+                    <div class="eq-dot" style="background:#55aaff"></div>
+                    <div><div>MONITOR</div><div class="eq-sub">1 in</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="pa" ondragstart="dragStart(event,'pa')">
+                    <div class="eq-dot" style="background:#ff7755"></div>
+                    <div><div>PA PRINCIPAL</div><div class="eq-sub">2 in (L/R)</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="iem" ondragstart="dragStart(event,'iem')">
+                    <div class="eq-dot" style="background:#aaffdd"></div>
+                    <div><div>IEM TX</div><div class="eq-sub">2 in / wireless</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="sub" ondragstart="dragStart(event,'sub')">
+                    <div class="eq-dot" style="background:#ff3333"></div>
+                    <div><div>SUBWOOFER</div><div class="eq-sub">1 in</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="headphone_amp" ondragstart="dragStart(event,'headphone_amp')">
+                    <div class="eq-dot" style="background:#cc88ff"></div>
+                    <div><div>AMP DE FONE</div><div class="eq-sub">2 in / 4 saídas HP</div></div>
+                </div>
+                <div class="eq-item" draggable="true" data-type="headphone_vol" ondragstart="dragStart(event,'headphone_vol')">
+                    <div class="eq-dot" style="background:#ff88cc"></div>
+                    <div><div>REGULADOR DE FONE</div><div class="eq-sub">1 in / 1 out</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-section" id="acc-panel">
+            <div class="panel-title">ACESSÓRIOS</div>
+            <div class="item-list">
+                <div class="eq-item" draggable="true" data-type="cable_ramp" ondragstart="dragStart(event,'cable_ramp')">
+                    <div class="eq-dot" style="background:#ffcc00"></div>
+                    <div><div>RÉGUA DE PASSAGEM</div><div class="eq-sub">Organização de cabos</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-wrap"
+        ondragover="event.preventDefault()"
+        ondrop="dropEquipment(event)"
+        onmousedown="canvasMouseDown(event)"
+        onmousemove="canvasMouseMove(event)"
+        onmouseup="canvasMouseUp(event)"
+        onwheel="canvasWheel(event)"
+        oncontextmenu="return false">
+        <canvas id="grid-canvas"></canvas>
+        <canvas id="main-canvas"></canvas>
+    </div>
+
+    <div id="right-panel">
+        <div id="props-panel">
+            <div class="prop-title">PROPRIEDADES</div>
+            <div id="props-content">
+                <div class="no-sel">Selecione um item para editar suas propriedades</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ctx-menu">
+    <div class="ctx-item" id="ctx-delete" onclick="ctxDelete()">🗑 Deletar</div>
+    <div class="ctx-item" id="ctx-duplicate" onclick="ctxDuplicate()">⧉ Duplicar</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctx-bring-front" onclick="ctxBringFront()">▲ Trazer à frente</div>
+    <div class="ctx-item" id="ctx-send-back" onclick="ctxSendBack()">▼ Enviar atrás</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctx-clear-cables" onclick="ctxClearCables()">✕ Limpar cabos</div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ============================================================
+// EQUIPMENT DEFINITIONS
+// ============================================================
+const EQ_DEFS = {
+    guitar:    { label:'GUITARRA', color:'#ff6b35', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎸' },
+    bass:      { label:'BAIXO', color:'#ff9933', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎸' },
+    keys:      { label:'TECLADO', color:'#ffcc00', w:120, h:60, inputs:[], outputs:['L','R'], icon:'🎹' },
+    drums:     { label:'BATERIA', color:'#ff4444', w:140, h:80, inputs:[], outputs:['KICK','SNARE','OH L','OH R','ROOM','AUX'], icon:'🥁' },
+    vocal:     { label:'MICROFONE', color:'#44aaff', w:30, h:60, inputs:[], outputs:['XLR OUT'], icon:'🎤' },
+    violin:    { label:'VIOLINO', color:'#aa44ff', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎻' },
+    acoustic:  { label:'VIOLÃO', color:'#44ff88', w:100, h:60, inputs:[], outputs:['OUT 1'], icon:'🎸' },
+    di:        { label:'DI BOX', color:'#00ff88', w:90, h:70, inputs:['IN'], outputs:['THRU','XLR'], icon:'⊡' },
+    pedalboard:{ label:'PEDALEIRA', color:'#ff44aa', w:130, h:70, inputs:['IN'], outputs:['OUT L','OUT R'], icon:'⬛' },
+    amp:       { label:'AMPLIFICADOR', color:'#ff6644', w:130, h:80, inputs:['IN'], outputs:['DI OUT','MIC'], icon:'📢' },
+    preamp:    { label:'PRÉ-AMP', color:'#66aaff', w:110, h:70, inputs:['IN'], outputs:['OUT'], icon:'▲' },
+    splitter:  { label:'SPLITTER', color:'#ffaa44', w:100, h:70, inputs:['IN'], outputs:['A','B','C','D'], icon:'↔' },
+    console:   { label:'MESA DE SOM', color:'#00ccff', w:180, h:100, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['MAIN L','MAIN R','AUX 1','AUX 2','AUX 3','AUX 4'], icon:'🎛' },
+    stagebox:  { label:'STAGEBOX', color:'#ffdd00', w:160, h:90, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['NETWORK','AES 1','AES 2'], icon:'📦' },
+    medusa:    { label:'MEDUSA', color:'#ff88ff', w:160, h:100, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8','IN 9','IN 10','IN 11','IN 12'], outputs:['OUT 1','OUT 2','OUT 3','OUT 4','OUT 5','OUT 6','OUT 7','OUT 8','OUT 9','OUT 10','OUT 11','OUT 12'], icon:'🐙' },
+    patch:     { label:'PATCH BAY', color:'#88ffaa', w:160, h:80, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['OUT 1','OUT 2','OUT 3','OUT 4','OUT 5','OUT 6','OUT 7','OUT 8'], icon:'⊞' },
+    power_amp: { label:'AMP POTÊNCIA', color:'#ff5555', w:130, h:70, inputs:['IN L','IN R'], outputs:['SP L','SP R'], icon:'⚡' },
+    monitor:   { label:'MONITOR', color:'#55aaff', w:100, h:70, inputs:['IN'], outputs:[], icon:'📺' },
+    pa:        { label:'PA PRINCIPAL', color:'#ff7755', w:120, h:80, inputs:['IN L','IN R'], outputs:[], icon:'🔊' },
+    iem:       { label:'IEM TX', color:'#aaffdd', w:110, h:70, inputs:['IN L','IN R'], outputs:[], icon:'📡' },
+    sub:       { label:'SUBWOOFER', color:'#ff3333', w:110, h:70, inputs:['IN'], outputs:[], icon:'💥' },
+    headphone_amp: { label:'AMP FONE', color:'#cc88ff', w:120, h:70, inputs:['IN L','IN R'], outputs:['HP 1','HP 2','HP 3','HP 4'], icon:'🎧' },
+    headphone_vol: { label:'REG. FONE', color:'#ff88cc', w:30, h:60, inputs:['IN'], outputs:['OUT'], icon:'🎚' },
+    cable_ramp: { label:'RÉGUA DE PASSAGEM', color:'#ffcc00', w:200, h:40, inputs:['IN 1','IN 2','IN 3','IN 4','IN 5','IN 6','IN 7','IN 8'], outputs:['OUT 1','OUT 2','OUT 3','OUT 4','OUT 5','OUT 6','OUT 7','OUT 8'], icon:'⏚', isRamp:true }
+};
+
+const CABLE_COLORS = ['#ff4444','#44aaff','#ffaa00','#aa44ff','#44ffaa','#ff44aa','#ffff44','#00ffff','#ff8844','#88ff44'];
+
+// ============================================================
+// STATE & PERFORMANCE CACHES
+// ============================================================
+let equipments = [];
+let cables = [];
+let environments = [];
+let selectedEq = null;
+let selectedCable = null;
+let selectedEnv = null;
+let currentMode = 'select';
+let currentCableColor = CABLE_COLORS[0];
+let eqIdCounter = 0;
+let cableIdCounter = 0;
+let envIdCounter = 0;
+let viewX = 0, viewY = 0, viewScale = 1;
+let isDragging = false;
+let dragEq = null;
+let dragEnv = null;
+let dragOffX = 0, dragOffY = 0;
+let cableDrawing = false;
+let cableStart = null;
+let cableMouseX = 0, cableMouseY = 0;
+let isPanning = false;
+let panStartX = 0, panStartY = 0;
+let panViewX = 0, panViewY = 0;
+let ctxTarget = null;
+let isDraggingWaypoint = false;
+let dragWpCable = null;
+let dragWpIdx = -1;
+
+let eqMap = new Map();
+let sortedEquipments = [];
+
+function updateEqMap() {
+    eqMap.clear();
+    for (const eq of equipments) {
+        eqMap.set(eq.id, eq);
+    }
+}
+
+function updateSortedEquipments() {
+    sortedEquipments = [...equipments].sort((a, b) => (a.z || 0) - (b.z || 0));
+}
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+const canvasWrap = document.getElementById('canvas-wrap');
+const gridCanvas = document.getElementById('grid-canvas');
+const mainCanvas = document.getElementById('main-canvas');
+const gctx = gridCanvas.getContext('2d');
+const ctx = mainCanvas.getContext('2d');
+
+function resizeCanvases() {
+    const w = canvasWrap.clientWidth;
+    const h = canvasWrap.clientHeight;
+    gridCanvas.width = mainCanvas.width = w;
+    gridCanvas.height = mainCanvas.height = h;
+    drawGrid();
+    render();
+}
+
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
+
+// ============================================================
+// GRID
+// ============================================================
+function drawGrid() {
+    const w = gridCanvas.width, h = gridCanvas.height;
+    gctx.clearRect(0, 0, w, h);
+    gctx.strokeStyle = getCSSVar('--grid-line');
+    gctx.lineWidth = 1;
+    
+    const gSize = 40 * viewScale;
+    const offX = (viewX % gSize);
+    const offY = (viewY % gSize);
+    
+    for (let x = offX; x < w; x += gSize) {
+        gctx.beginPath(); 
+        gctx.moveTo(x, 0); 
+        gctx.lineTo(x, h); 
+        gctx.stroke();
+    }
+    for (let y = offY; y < h; y += gSize) {
+        gctx.beginPath(); 
+        gctx.moveTo(0, y); 
+        gctx.lineTo(w, y); 
+        gctx.stroke();
+    }
+    
+    drawZone(gctx, 'PALCO', 80, 80, w * 0.9 - 80, h * 0.55 - 80, getCSSVar('--zone-fill-stage'));
+    drawZone(gctx, 'FOH', 80, h * 0.65, w * 0.45 - 80, h * 0.3 - 20, getCSSVar('--zone-fill-foh'));
+    drawZone(gctx, 'MONITOR WORLD', w * 0.5, h * 0.65, w * 0.4, h * 0.3 - 20, getCSSVar('--zone-fill-mon'));
+}
+
+function drawZone(c, label, x, y, w, h, fill) {
+    c.save();
+    c.fillStyle = fill;
+    c.fillRect(x, y, w, h);
+    c.strokeStyle = getCSSVar('--zone-stroke');
+    c.setLineDash([6, 4]);
+    c.strokeRect(x, y, w, h);
+    c.setLineDash([]);
+    c.fillStyle = getCSSVar('--zone-label');
+    c.font = 'bold 14px "Bebas Neue", sans-serif';
+    c.letterSpacing = '4px';
+    c.fillText(label, x + 10, y + 22);
+    c.restore();
+}
+
+// ============================================================
+// WORLD / SCREEN TRANSFORMS
+// ============================================================
+function worldToScreen(wx, wy) {
+    return { x: wx * viewScale + viewX, y: wy * viewScale + viewY };
+}
+
+function screenToWorld(sx, sy) {
+    return { x: (sx - viewX) / viewScale, y: (sy - viewY) / viewScale };
+}
+
+// ============================================================
+// PORT POSITIONS & NORMALS
+// ============================================================
+function getPortPos(eq, portType, portIdx) {
+    const def = EQ_DEFS[eq.type];
+    const bw = (eq.w || def.w) * viewScale;
+    const bh = (eq.h || def.h) * viewScale;
+    const sp = worldToScreen(eq.x, eq.y);
+    let lx, ly;
+    let nx = 0, ny = 0;
+    const flipped = eq.portsFlipped;
+    
+    if (portType === 'input') {
+        const ports = eq.inputs || def.inputs;
+        if (!ports.length) return null;
+        const spacing = bw / (ports.length + 1);
+        lx = spacing * (portIdx + 1);
+        ly = flipped ? bh : 0;
+        nx = 0;
+        ny = flipped ? 1 : -1;
+    } else {
+        const ports = eq.outputs || def.outputs;
+        if (!ports.length) return null;
+        const spacing = bw / (ports.length + 1);
+        lx = spacing * (portIdx + 1);
+        ly = flipped ? 0 : bh;
+        nx = 0;
+        ny = flipped ? -1 : 1;
+    }
+    
+    let finalX = sp.x + lx;
+    let finalY = sp.y + ly;
+    let finalNx = nx;
+    let finalNy = ny;
+    
+    if (eq.rotation) {
+        const cx = sp.x + bw / 2;
+        const cy = sp.y + bh / 2;
+        const angle = eq.rotation * Math.PI / 180;
+        const localX = lx - bw / 2;
+        const localY = ly - bh / 2;
+        finalX = cx + localX * Math.cos(angle) - localY * Math.sin(angle);
+        finalY = cy + localX * Math.sin(angle) + localY * Math.cos(angle);
+        
+        finalNx = nx * Math.cos(angle) - ny * Math.sin(angle);
+        finalNy = nx * Math.sin(angle) + ny * Math.cos(angle);
+    }
+    
+    return { x: finalX, y: finalY, nx: finalNx, ny: finalNy };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+    const w = mainCanvas.width, h = mainCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+    
+    // 1. Draw Environments (Background)
+    for (const env of environments) {
+        drawEnvironment(env, env === selectedEnv);
+    }
+    
+    // 2. Draw Cables
+    for (const cable of cables) {
+        drawCable(cable, cable === selectedCable);
+    }
+    
+    // 3. Draw Cable being created
+    if (cableDrawing && cableStart) {
+        const p = getPortPos(cableStart.eq, cableStart.portType, cableStart.portIdx);
+        if (p) {
+            ctx.save();
+            ctx.strokeStyle = currentCableColor;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([6, 4]);
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            
+            const dx = cableMouseX - p.x;
+            const dy = cableMouseY - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const cpDist = Math.min(dist * 0.3, 40);
+            const angle = Math.atan2(dy, dx);
+            
+            const cp1x = p.x + p.nx * cpDist;
+            const cp1y = p.y + p.ny * cpDist;
+            const cp2x = cableMouseX - Math.cos(angle) * cpDist;
+            const cp2y = cableMouseY - Math.sin(angle) * cpDist;
+            
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, cableMouseX, cableMouseY);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+    
+    // 4. Draw Equipment
+    for (const eq of sortedEquipments) {
+        drawEquipment(eq, eq === selectedEq);
+    }
+    
+    updateStatus();
+}
+
+function drawEnvironment(env, selected) {
+    const sp = worldToScreen(env.x, env.y);
+    const bw = env.w * viewScale;
+    const bh = env.h * viewScale;
+    
+    ctx.save();
+    const cx = sp.x + bw / 2;
+    const cy = sp.y + bh / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate((env.rotation || 0) * Math.PI / 180);
+    ctx.translate(-bw / 2, -bh / 2);
+    
+    if (env.type === 'wall') {
+        ctx.fillStyle = env.color;
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        ctx.fillRect(0, 0, bw, bh);
+        ctx.strokeRect(0, 0, bw, bh);
+        
+        // Wall texture/detail
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(0, 0, bw, bh * 0.4);
+    } else {
+        ctx.fillStyle = env.color;
+        ctx.strokeStyle = env.color.replace(/[\d.]+\)$/g, '0.6)');
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.fillRect(0, 0, bw, bh);
+        ctx.strokeRect(0, 0, bw, bh);
+        ctx.setLineDash([]);
+        
+        ctx.fillStyle = getCSSVar('--text-dim');
+        ctx.font = `bold ${Math.max(10, 14 * viewScale)}px "Bebas Neue", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(env.label || 'ZONA', bw / 2, bh / 2);
+    }
+    
+    if (selected) {
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(-4, -4, bw + 8, bh + 8);
+        ctx.setLineDash([]);
+    }
+    
+    ctx.restore();
+}
+
+function getCableData(cable) {
+    const fromEq = eqMap.get(cable.fromId);
+    const toEq = eqMap.get(cable.toId);
+    if (!fromEq || !toEq) return null;
+    
+    const p1 = getPortPos(fromEq, 'output', cable.fromPort);
+    const p2 = getPortPos(toEq, 'input', cable.toPort);
+    if (!p1 || !p2) return null;
+    
+    const wps = (cable.waypoints || []).map(wp => worldToScreen(wp.x, wp.y));
+    return { pts: [p1, ...wps, p2], p1, p2 };
+}
+
+function drawCablePath(c, p1, p2) {
+    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const cpDist = Math.min(dist * 0.3, 40);
+    
+    c.moveTo(p1.x, p1.y);
+    c.bezierCurveTo(
+        p1.x + p1.nx * cpDist,
+        p1.y + p1.ny * cpDist,
+        p2.x + p2.nx * cpDist,
+        p2.y + p2.ny * cpDist,
+        p2.x, p2.y
+    );
+}
+
+function drawCablePolyPath(c, pts, startPort, endPort) {
+    if (pts.length < 2) return;
+    c.moveTo(pts[0].x, pts[0].y);
+    
+    for (let i = 0; i < pts.length - 1; i++) {
+        const curr = pts[i];
+        const next = pts[i + 1];
+        const dist = Math.hypot(next.x - curr.x, next.y - curr.y);
+        const cpDist = Math.min(dist * 0.3, 40);
+        
+        let cp1x, cp1y, cp2x, cp2y;
+        
+        if (i === 0) {
+            cp1x = curr.x + startPort.nx * cpDist;
+            cp1y = curr.y + startPort.ny * cpDist;
+            const angle = Math.atan2(next.y - curr.y, next.x - curr.x);
+            cp2x = next.x - Math.cos(angle) * cpDist;
+            cp2y = next.y - Math.sin(angle) * cpDist;
+        } else if (i === pts.length - 2) {
+            const angle = Math.atan2(next.y - curr.y, next.x - curr.x);
+            cp1x = curr.x + Math.cos(angle) * cpDist;
+            cp1y = curr.y + Math.sin(angle) * cpDist;
+            cp2x = next.x + endPort.nx * cpDist;
+            cp2y = next.y + endPort.ny * cpDist;
+        } else {
+            const angle = Math.atan2(next.y - curr.y, next.x - curr.x);
+            cp1x = curr.x + Math.cos(angle) * cpDist;
+            cp1y = curr.y + Math.sin(angle) * cpDist;
+            const nextAngle = Math.atan2(pts[i+2].y - next.y, pts[i+2].x - next.x);
+            cp2x = next.x - Math.cos(nextAngle) * cpDist;
+            cp2y = next.y - Math.sin(nextAngle) * cpDist;
+        }
+        
+        c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, next.x, next.y);
+    }
+}
+
+function drawCable(cable, selected) {
+    const data = getCableData(cable);
+    if (!data) return;
+    const pts = data.pts;
+    const p1 = data.p1;
+    const p2 = data.p2;
+    
+    ctx.save();
+    ctx.strokeStyle = cable.color || '#888';
+    ctx.lineWidth = selected ? 3.5 : 2.2;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = cable.color || '#888';
+    ctx.shadowBlur = selected ? 10 : 4;
+    ctx.beginPath();
+    
+    if (pts.length === 2) {
+        drawCablePath(ctx, p1, p2);
+    } else {
+        drawCablePolyPath(ctx, pts, p1, p2);
+    }
+    
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = cable.color;
+    ctx.beginPath(); 
+    ctx.arc(p2.x, p2.y, selected ? 5 : 3.5, 0, Math.PI * 2); 
+    ctx.fill();
+    
+    ctx.beginPath(); 
+    ctx.arc(p1.x, p1.y, selected ? 4 : 2.5, 0, Math.PI * 2); 
+    ctx.fill();
+    
+    if (selected && cable.waypoints && cable.waypoints.length > 0) {
+        cable.waypoints.forEach(wp => {
+            const sp = worldToScreen(wp.x, wp.y);
+            ctx.beginPath(); 
+            ctx.arc(sp.x, sp.y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff'; 
+            ctx.globalAlpha = 0.9; 
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = cable.color; 
+            ctx.lineWidth = 2; 
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#333'; 
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); 
+            ctx.moveTo(sp.x - 3, sp.y - 3); 
+            ctx.lineTo(sp.x + 3, sp.y + 3); 
+            ctx.stroke();
+            ctx.beginPath(); 
+            ctx.moveTo(sp.x + 3, sp.y - 3); 
+            ctx.lineTo(sp.x - 3, sp.y + 3); 
+            ctx.stroke();
+        });
+    }
+    ctx.restore();
+}
+
+function drawEquipment(eq, selected) {
+    const def = EQ_DEFS[eq.type];
+    const bw = (eq.w || def.w) * viewScale;
+    const bh = (eq.h || def.h) * viewScale;
+    const color = eq.color || def.color;
+    const sp = worldToScreen(eq.x, eq.y);
+    
+    ctx.save();
+    
+    if (eq.rotation) {
+        const cx = sp.x + bw / 2;
+        const cy = sp.y + bh / 2;
+        ctx.translate(cx, cy);
+        ctx.rotate(eq.rotation * Math.PI / 180);
+        ctx.translate(-bw / 2, -bh / 2);
+    }
+    
+    const sx = eq.rotation ? 0 : sp.x;
+    const sy = eq.rotation ? 0 : sp.y;
+
+    if (eq.type === 'cable_ramp') {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = selected ? 15 : 5;
+        ctx.fillStyle = selected ? getCSSVar('--eq-body-sel') : '#1a1a25';
+        ctx.strokeStyle = selected ? color : '#444455';
+        ctx.lineWidth = selected ? 2 : 1;
+        
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, bw, bh, 4);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, bw, bh, 4);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(255, 204, 0, 0.15)';
+        ctx.lineWidth = 3;
+        for (let i = -bw; i < bw + bh; i += 12) {
+            ctx.beginPath();
+            ctx.moveTo(sx + i, sy);
+            ctx.lineTo(sx + i + bh, sy + bh);
+            ctx.stroke();
+        }
+        ctx.restore();
+        
+        ctx.fillStyle = '#888899';
+        ctx.font = `bold ${Math.max(9, 11 * viewScale)}px "Rajdhani", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(eq.label || def.label, sx + bw / 2, sy + bh / 2);
+    } else {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = selected ? 20 : 8;
+        ctx.fillStyle = selected ? getCSSVar('--eq-body-sel') : getCSSVar('--eq-body');
+        ctx.strokeStyle = selected ? color : getCSSVar('--border');
+        ctx.lineWidth = selected ? 2 : 1;
+        
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, bw, bh, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, bw, 5, [4, 4, 0, 0]);
+        ctx.fill();
+        
+        const iconSize = Math.min(18, bh * 0.25) * viewScale;
+        ctx.font = `${iconSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(def.icon, sx + bw / 2, sy + bh * 0.4);
+        
+        ctx.fillStyle = color;
+        ctx.font = `bold ${Math.max(9, 11 * viewScale)}px "Rajdhani", sans-serif`;
+        ctx.fillText(eq.label || def.label, sx + bw / 2, sy + bh * 0.65);
+        
+        const inputs = eq.inputs || def.inputs;
+        const outputs = eq.outputs || def.outputs;
+        
+        if (inputs.length > 0 || outputs.length > 0) {
+            ctx.fillStyle = getCSSVar('--text-dim');
+            ctx.font = `${Math.max(7, 9 * viewScale)}px "Share Tech Mono", monospace`;
+            const inArrow = eq.portsFlipped ? '▲' : '▼';
+            const outArrow = eq.portsFlipped ? '▼' : '▲';
+            if (inputs.length) ctx.fillText(`${inArrow}${inputs.length}`, sx + bw * 0.25, sy + bh * 0.82);
+            if (outputs.length) ctx.fillText(`${outArrow}${outputs.length}`, sx + bw * 0.75, sy + bh * 0.82);
+        }
+    }
+    
+    ctx.shadowBlur = 0;
+    drawPorts(eq, 'input', sx, sy, bw, bh, color);
+    drawPorts(eq, 'output', sx, sy, bw, bh, color);
+    
+    if (selected) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        ctx.globalAlpha = 0.5;
+        ctx.strokeRect(sx - 4, sy - 4, bw + 8, bh + 8);
+    }
+    ctx.restore();
+}
+
+function drawPorts(eq, portType, sx, sy, eqW, eqH, color) {
+    const def = EQ_DEFS[eq.type];
+    const ports = portType === 'input' ? (eq.inputs || def.inputs) : (eq.outputs || def.outputs);
+    const count = ports.length;
+    if (count === 0) return;
+    
+    const spacing = eqW / (count + 1);
+    const flipped = eq.portsFlipped;
+    const py = (portType === 'input') ? (flipped ? sy + eqH : sy) : (flipped ? sy : sy + eqH);
+    const portR = Math.max(5, 6.5 * viewScale);
+    const highlight = (currentMode === 'cable' || cableDrawing);
+    
+    for (let i = 0; i < count; i++) {
+        const px = sx + spacing * (i + 1);
+        if (highlight) {
+            const glowColor = portType === 'input' ? '#44aaff' : color;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(px, py, portR + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.45;
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.beginPath();
+        ctx.arc(px, py, portR, 0, Math.PI * 2);
+        ctx.fillStyle = portType === 'input' ? getCSSVar('--eq-port-in') : color;
+        ctx.fill();
+        ctx.strokeStyle = portType === 'input' ? color : getCSSVar('--bg');
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+}
+
+// ============================================================
+// DRAG FROM PANEL
+// ============================================================
+let dragType = null;
+
+function dragStart(event, type) {
+    if (currentMode !== 'select') {
+        event.preventDefault();
+        return;
+    }
+    dragType = type;
+    event.dataTransfer.setData('text/plain', type);
+}
+
+function dropEquipment(event) {
+    event.preventDefault();
+    if (currentMode !== 'select') return;
+    const type = event.dataTransfer.getData('text/plain') || dragType;
+    if (!type || !EQ_DEFS[type]) return;
+    
+    const rect = canvasWrap.getBoundingClientRect();
+    const sx = event.clientX - rect.left;
+    const sy = event.clientY - rect.top;
+    const wp = screenToWorld(sx, sy);
+    const def = EQ_DEFS[type];
+    
+    addEquipment(type, wp.x - def.w / 2, wp.y - def.h / 2);
+}
+
+function addEquipment(type, wx, wy) {
+    const def = EQ_DEFS[type];
+    const eq = {
+        id: ++eqIdCounter,
+        type,
+        x: wx, y: wy,
+        w: def.w, h: def.h,
+        label: def.label,
+        color: def.color,
+        inputs: [...def.inputs],
+        outputs: [...def.outputs],
+        z: eqIdCounter,
+        note: '',
+        rotation: 0
+    };
+    equipments.push(eq);
+    updateEqMap();
+    updateSortedEquipments();
+    selectEq(eq);
+    render();
+    save();
+}
+
+function addEnvironment(type) {
+    const center = screenToWorld(mainCanvas.width / 2, mainCanvas.height / 2);
+    const env = {
+        id: ++envIdCounter,
+        type: type,
+        x: center.x - 100,
+        y: center.y - 10,
+        w: 200,
+        h: type === 'wall' ? 12 : 200,
+        rotation: 0,
+        color: type === 'wall' ? '#555566' : 'rgba(0, 200, 100, 0.15)',
+        label: type === 'zone' ? 'ZONA' : '',
+        z: 0
+    };
+    environments.push(env);
+    selectedEnv = env;
+    selectedEq = null;
+    selectedCable = null;
+    showEnvProps(env);
+    render();
+    save();
+}
+
+// ============================================================
+// CANVAS MOUSE EVENTS
+// ============================================================
+function getCanvasPos(event) {
+    const rect = canvasWrap.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function hitTestEq(sx, sy) {
+    for (const eq of sortedEquipments) {
+        const def = EQ_DEFS[eq.type];
+        const bw = (eq.w || def.w) * viewScale;
+        const bh = (eq.h || def.h) * viewScale;
+        const sp = worldToScreen(eq.x, eq.y);
+        
+        if (eq.rotation) {
+            const cx = sp.x + bw / 2;
+            const cy = sp.y + bh / 2;
+            const dx = sx - cx;
+            const dy = sy - cy;
+            const angle = -eq.rotation * Math.PI / 180;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const localX = dx * cos - dy * sin;
+            const localY = dx * sin + dy * cos;
+            
+            if (localX >= -bw / 2 && localX <= bw / 2 && localY >= -bh / 2 && localY <= bh / 2) {
+                return eq;
+            }
+        } else {
+            const lx = sx - sp.x;
+            const ly = sy - sp.y;
+            if (lx >= 0 && lx <= bw && ly >= 0 && ly <= bh) return eq;
+        }
+    }
+    return null;
+}
+
+function hitTestEnv(sx, sy) {
+    for (let i = environments.length - 1; i >= 0; i--) {
+        const env = environments[i];
+        const sp = worldToScreen(env.x, env.y);
+        const bw = env.w * viewScale;
+        const bh = env.h * viewScale;
+        const cx = sp.x + bw / 2;
+        const cy = sp.y + bh / 2;
+        
+        const dx = sx - cx;
+        const dy = sy - cy;
+        const angle = -(env.rotation || 0) * Math.PI / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const localX = dx * cos - dy * sin;
+        const localY = dx * sin + dy * cos;
+        
+        if (localX >= -bw / 2 && localX <= bw / 2 && localY >= -bh / 2 && localY <= bh / 2) {
+            return env;
+        }
+    }
+    return null;
+}
+
+function hitTestPort(sx, sy) {
+    const portR = Math.max(10, 12 * viewScale);
+    for (const eq of equipments) {
+        const def = EQ_DEFS[eq.type];
+        const inputs = eq.inputs || def.inputs;
+        const outputs = eq.outputs || def.outputs;
+        
+        for (let i = 0; i < inputs.length; i++) {
+            const p = getPortPos(eq, 'input', i);
+            if (p && Math.hypot(sx - p.x, sy - p.y) < portR) return { eq, portType: 'input', portIdx: i };
+        }
+        for (let i = 0; i < outputs.length; i++) {
+            const p = getPortPos(eq, 'output', i);
+            if (p && Math.hypot(sx - p.x, sy - p.y) < portR) return { eq, portType: 'output', portIdx: i };
+        }
+    }
+    return null;
+}
+
+function hitTestCable(sx, sy) {
+    for (const cable of cables) {
+        const data = getCableData(cable);
+        if (!data || data.pts.length < 2) continue;
+        
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (let i = 0; i < data.pts.length; i++) {
+            const p = data.pts[i];
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }
+        const threshold = 8;
+        if (sx < minX - threshold || sx > maxX + threshold || sy < minY - threshold || sy > maxY + threshold) {
+            continue;
+        }
+
+        if (pointNearCurve(sx, sy, data.pts, threshold, data.p1, data.p2)) return cable;
+    }
+    return null;
+}
+
+function pointNearCurve(px, py, pts, threshold, startPort, endPort) {
+    const steps = 15;
+    const threshSq = threshold * threshold;
+    for (let i = 0; i < pts.length - 1; i++) {
+        const curr = pts[i], next = pts[i + 1];
+        const dx = next.x - curr.x;
+        const dy = next.y - curr.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const cpDist = Math.min(dist * 0.3, 40);
+        
+        let cp1x, cp1y, cp2x, cp2y;
+        
+        if (i === 0) {
+            cp1x = curr.x + startPort.nx * cpDist;
+            cp1y = curr.y + startPort.ny * cpDist;
+            const angle = Math.atan2(dy, dx);
+            cp2x = next.x - Math.cos(angle) * cpDist;
+            cp2y = next.y - Math.sin(angle) * cpDist;
+        } else if (i === pts.length - 2) {
+            const angle = Math.atan2(dy, dx);
+            cp1x = curr.x + Math.cos(angle) * cpDist;
+            cp1y = curr.y + Math.sin(angle) * cpDist;
+            cp2x = next.x + endPort.nx * cpDist;
+            cp2y = next.y + endPort.ny * cpDist;
+        } else {
+            const angle = Math.atan2(dy, dx);
+            cp1x = curr.x + Math.cos(angle) * cpDist;
+            cp1y = curr.y + Math.sin(angle) * cpDist;
+            const nextAngle = Math.atan2(pts[i+2].y - next.y, pts[i+2].x - next.x);
+            cp2x = next.x - Math.cos(nextAngle) * cpDist;
+            cp2y = next.y - Math.sin(nextAngle) * cpDist;
+        }
+        
+        for (let s = 0; s <= steps; s++) {
+            const t = s / steps;
+            const u = 1 - t;
+            const bx = u*u*u*curr.x + 3*u*u*t*cp1x + 3*u*t*t*cp2x + t*t*t*next.x;
+            const by = u*u*u*curr.y + 3*u*u*t*cp1y + 3*u*t*t*cp2y + t*t*t*next.y;
+            const distSq = (px - bx)*(px - bx) + (py - by)*(py - by);
+            if (distSq < threshSq) return true;
+        }
+    }
+    return false;
+}
+
+function hitTestWaypoint(sx, sy) {
+    for (const cable of cables) {
+        if (!cable.waypoints) continue;
+        for (let i = 0; i < cable.waypoints.length; i++) {
+            const sp = worldToScreen(cable.waypoints[i].x, cable.waypoints[i].y);
+            if (Math.hypot(sx - sp.x, sy - sp.y) < 10) return { cable, wpIdx: i };
+        }
+    }
+    return null;
+}
+
+function canvasMouseDown(event) {
+    if (event.button === 2) {
+        showContextMenu(event);
+        return;
+    }
+    
+    const pos = getCanvasPos(event);
+    hideContextMenu();
+    
+    if (currentMode === 'pan' || (event.button === 1)) {
+        isPanning = true;
+        panStartX = event.clientX;
+        panStartY = event.clientY;
+        panViewX = viewX;
+        panViewY = viewY;
+        return;
+    }
+    
+    if (currentMode === 'env') {
+        const env = hitTestEnv(pos.x, pos.y);
+        if (env) {
+            selectedEnv = env;
+            selectedEq = null;
+            selectedCable = null;
+            showEnvProps(env);
+            isDragging = true;
+            dragEnv = env;
+            const wp = screenToWorld(pos.x, pos.y);
+            dragOffX = wp.x - env.x;
+            dragOffY = wp.y - env.y;
+            render();
+            return;
+        }
+    }
+    
+    if (currentMode === 'cable') {
+        const port = hitTestPort(pos.x, pos.y);
+        if (port) {
+            cableDrawing = true;
+            cableStart = port;
+            cableMouseX = pos.x;
+            cableMouseY = pos.y;
+        }
+        return;
+    }
+    
+    const port = hitTestPort(pos.x, pos.y);
+    if (port && currentMode === 'select') {
+        cableDrawing = true;
+        cableStart = port;
+        cableMouseX = pos.x;
+        cableMouseY = pos.y;
+        return;
+    }
+    
+    const eq = hitTestEq(pos.x, pos.y);
+    if (eq) {
+        selectEq(eq);
+        isDragging = true;
+        dragEq = eq;
+        const wp = screenToWorld(pos.x, pos.y);
+        dragOffX = wp.x - eq.x;
+        dragOffY = wp.y - eq.y;
+        eq.z = ++eqIdCounter;
+        updateSortedEquipments();
+        return;
+    }
+    
+    const wpHit = hitTestWaypoint(pos.x, pos.y);
+    if (wpHit) {
+        isDraggingWaypoint = true;
+        dragWpCable = wpHit.cable;
+        dragWpIdx = wpHit.wpIdx;
+        selectedCable = wpHit.cable;
+        selectedEq = null;
+        selectedEnv = null;
+        showCableProps(wpHit.cable);
+        render();
+        return;
+    }
+    
+    const cable = hitTestCable(pos.x, pos.y);
+    if (cable) {
+        selectedCable = cable;
+        selectedEq = null;
+        selectedEnv = null;
+        showCableProps(cable);
+        render();
+        return;
+    }
+    
+    selectedEq = null;
+    selectedCable = null;
+    selectedEnv = null;
+    showNoSel();
+    render();
+    
+    isPanning = true;
+    panStartX = event.clientX;
+    panStartY = event.clientY;
+    panViewX = viewX;
+    panViewY = viewY;
+}
+
+function canvasMouseMove(event) {
+    const pos = getCanvasPos(event);
+    
+    if (isPanning) {
+        mainCanvas.style.cursor = 'grabbing';
+        viewX = panViewX + (event.clientX - panStartX);
+        viewY = panViewY + (event.clientY - panStartY);
+        drawGrid();
+        render();
+        return;
+    }
+    
+    if (isDraggingWaypoint && dragWpCable) {
+        const world = screenToWorld(pos.x, pos.y);
+        dragWpCable.waypoints[dragWpIdx] = { x: world.x, y: world.y };
+        mainCanvas.style.cursor = 'grabbing';
+        render();
+        return;
+    }
+    
+    if (isDragging && dragEq) {
+        const wp = screenToWorld(pos.x, pos.y);
+        dragEq.x = wp.x - dragOffX;
+        dragEq.y = wp.y - dragOffY;
+        render();
+        return;
+    }
+
+    if (isDragging && dragEnv) {
+        const wp = screenToWorld(pos.x, pos.y);
+        dragEnv.x = wp.x - dragOffX;
+        dragEnv.y = wp.y - dragOffY;
+        render();
+        return;
+    }
+    
+    if (cableDrawing) {
+        cableMouseX = pos.x;
+        cableMouseY = pos.y;
+        render();
+        const port = hitTestPort(pos.x, pos.y);
+        if (port) {
+            const def = EQ_DEFS[port.eq.type];
+            const ports = port.portType === 'input' ? (port.eq.inputs || def.inputs) : (port.eq.outputs || def.outputs);
+            showTooltip(event.clientX, event.clientY, ports[port.portIdx]);
+        } else {
+            hideTooltip();
+        }
+        return;
+    }
+    
+    const wpHover = hitTestWaypoint(pos.x, pos.y);
+    if (wpHover) {
+        mainCanvas.style.cursor = 'grab';
+        showTooltip(event.clientX, event.clientY, 'Arraste para mover · Clique direito para remover');
+        return;
+    }
+    
+    const port = hitTestPort(pos.x, pos.y);
+    if (port) {
+        const def = EQ_DEFS[port.eq.type];
+        const ports = port.portType === 'input' ? (port.eq.inputs || def.inputs) : (port.eq.outputs || def.outputs);
+        showTooltip(event.clientX, event.clientY, `${ports[port.portIdx]} (${port.portType})`);
+        mainCanvas.style.cursor = 'crosshair';
+    } else if (hitTestEq(pos.x, pos.y)) {
+        mainCanvas.style.cursor = currentMode === 'select' ? 'move' : 'default';
+        hideTooltip();
+    } else if (currentMode === 'env' && hitTestEnv(pos.x, pos.y)) {
+        mainCanvas.style.cursor = 'move';
+        hideTooltip();
+    } else {
+        const cableHover = hitTestCable(pos.x, pos.y);
+        if (cableHover) {
+            mainCanvas.style.cursor = 'pointer';
+            showTooltip(event.clientX, event.clientY, 'Clique direito para adicionar ponto de roteamento');
+        } else {
+            mainCanvas.style.cursor = isPanning ? 'grabbing' : 'grab';
+            hideTooltip();
+        }
+    }
+}
+
+function canvasMouseUp(event) {
+    isPanning = false;
+    isDragging = false;
+    
+    if (dragEq || dragEnv) { save(); }
+    dragEq = null;
+    dragEnv = null;
+    
+    if (isDraggingWaypoint) {
+        isDraggingWaypoint = false;
+        dragWpCable = null;
+        dragWpIdx = -1;
+        save();
+        return;
+    }
+    
+    save();
+    
+    if (cableDrawing) {
+        const pos = getCanvasPos(event);
+        const port = hitTestPort(pos.x, pos.y);
+        if (port && cableStart) {
+            let from = cableStart, to = port;
+            if (from.portType === 'input' && to.portType === 'output') {
+                [from, to] = [to, from];
+            }
+            if (from.portType === 'output' && to.portType === 'input' && from.eq !== to.eq) {
+                const fromOccupied = cables.some(c => c.fromId === from.eq.id && c.fromPort === from.portIdx);
+                const toOccupied = cables.some(c => c.toId === to.eq.id && c.toPort === to.portIdx);
+                
+                if (!fromOccupied && !toOccupied) {
+                    const exists = cables.find(c =>
+                        c.fromId === from.eq.id && c.fromPort === from.portIdx &&
+                        c.toId === to.eq.id && c.toPort === to.portIdx
+                    );
+                    if (!exists) {
+                        const cable = {
+                            id: ++cableIdCounter,
+                            fromId: from.eq.id,
+                            fromPort: from.portIdx,
+                            toId: to.eq.id,
+                            toPort: to.portIdx,
+                            color: currentCableColor,
+                            label: ''
+                        };
+                        cables.push(cable);
+                        selectedCable = cable;
+                        showCableProps(cable);
+                    }
+                } else {
+                    showTooltip(event.clientX, event.clientY, "Porta já ocupada!");
+                    setTimeout(hideTooltip, 1500);
+                }
+            }
+        }
+        cableDrawing = false;
+        cableStart = null;
+        hideTooltip();
+        render();
+        save();
+    }
+}
+
+function canvasWheel(event) {
+    event.preventDefault();
+    const pos = getCanvasPos(event);
+    const factor = event.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.min(3, Math.max(0.2, viewScale * factor));
+    
+    viewX = pos.x - (pos.x - viewX) * (newScale / viewScale);
+    viewY = pos.y - (pos.y - viewY) * (newScale / viewScale);
+    viewScale = newScale;
+    
+    drawGrid();
+    render();
+    save();
+}
+
+// ============================================================
+// MODE
+// ============================================================
+function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${mode}`)?.classList.add('active');
+    mainCanvas.style.cursor = mode === 'pan' ? 'grab' : 'default';
+    
+    const envPanel = document.getElementById('env-panel');
+    const equipPanel = document.getElementById('equip-panel');
+    const procPanel = document.getElementById('proc-panel');
+    const rackPanel = document.getElementById('rack-panel');
+    const monPanel = document.getElementById('mon-panel');
+    const accPanel = document.getElementById('acc-panel');
+    
+    const isEnv = mode === 'env';
+    if (envPanel) envPanel.style.display = isEnv ? 'block' : 'none';
+    if (equipPanel) equipPanel.style.display = isEnv ? 'none' : 'block';
+    if (procPanel) procPanel.style.display = isEnv ? 'none' : 'block';
+    if (rackPanel) rackPanel.style.display = isEnv ? 'none' : 'block';
+    if (monPanel) monPanel.style.display = isEnv ? 'none' : 'block';
+    if (accPanel) accPanel.style.display = isEnv ? 'none' : 'block';
+}
+
+// ============================================================
+// PROPERTIES PANEL
+// ============================================================
+function selectEq(eq) {
+    selectedEq = eq;
+    selectedCable = null;
+    selectedEnv = null;
+    showEqProps(eq);
+    render();
+}
+
+function showNoSel() {
+    document.getElementById('props-content').innerHTML =
+        '<div class="no-sel">Selecione um item para editar suas propriedades</div>';
+}
+
+function showEnvProps(env) {
+    document.getElementById('props-content').innerHTML = `
+        <div class="prop-title">🏗 AMBIENTE</div>
+        <div class="prop-row">
+            <div class="prop-label">TIPO</div>
+            <div style="font-size:13px; color:var(--text); text-transform:uppercase; font-weight:600;">${env.type === 'wall' ? 'PAREDE' : 'ZONA DE CHÃO'}</div>
+        </div>
+        <div class="prop-row">
+            <div class="prop-label">DIMENSÕES (px)</div>
+            <div style="display:flex; gap:8px;">
+                <input class="prop-input" type="number" value="${env.w}" min="10" onchange="setEnvDim(${env.id}, 'w', this.value)" placeholder="Comprimento">
+                <input class="prop-input" type="number" value="${env.h}" min="5" onchange="setEnvDim(${env.id}, 'h', this.value)" placeholder="${env.type === 'wall' ? 'Espessura' : 'Largura'}">
+            </div>
+        </div>
+        <div class="prop-row">
+            <div class="prop-label">ROTAÇÃO: ${env.rotation || 0}°</div>
+            <div style="display:flex; gap:4px; align-items:center;">
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEnv(${env.id}, -1)">↺ -1°</button>
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEnv(${env.id}, 1)">↻ +1°</button>
+                <input class="prop-input" type="number" value="${env.rotation || 0}" style="width:60px; text-align:center;" onchange="setEnvRotation(${env.id}, Number(this.value))">
+            </div>
+        </div>
+        ${env.type === 'zone' ? `
+        <div class="prop-row">
+            <div class="prop-label">RÓTULO</div>
+            <input class="prop-input" value="${env.label || ''}" onchange="setEnvLabel(${env.id}, this.value)">
+        </div>
+        ` : ''}
+        <div class="prop-row">
+            <div class="prop-label">COR</div>
+            <input class="prop-input" type="color" value="${env.type === 'wall' ? '#555566' : '#00c864'}" onchange="setEnvColor(${env.id}, this.value)" style="height:34px; padding:2px; cursor:pointer;">
+        </div>
+        <button class="prop-btn danger" onclick="deleteEnv(${env.id})">🗑 DELETAR</button>
+    `;
+}
+
+function showEqProps(eq) {
+    const def = EQ_DEFS[eq.type];
+    const inputs = eq.inputs || def.inputs;
+    const outputs = eq.outputs || def.outputs;
+    
+    const inPorts = inputs.map((p, i) => `
+        <div class="port-tag">
+            <div class="port-dot" style="background:#4488ff"></div>
+            <input class="prop-input" style="flex:1;padding:2px 4px;font-size:11px"
+                value="${p}" onchange="renamePort(${eq.id},'input',${i},this.value)">
+        </div>`).join('');
+        
+    const outPorts = outputs.map((p, i) => `
+        <div class="port-tag">
+            <div class="port-dot" style="background:${eq.color || def.color}"></div>
+            <input class="prop-input" style="flex:1;padding:2px 4px;font-size:11px"
+                value="${p}" onchange="renamePort(${eq.id},'output',${i},this.value)">
+        </div>`).join('');
+        
+    document.getElementById('props-content').innerHTML = `
+        <div class="prop-title">${def.icon} ${def.label}</div>
+        <div class="prop-row">
+            <div class="prop-label">NOME</div>
+            <input class="prop-input" value="${eq.label || def.label}" onchange="setEqLabel(${eq.id},this.value)">
+        </div>
+        ${eq.type === 'cable_ramp' ? `
+        <div class="prop-row">
+            <div class="prop-label">DIMENSÕES (px)</div>
+            <div style="display:flex; gap:8px;">
+                <input class="prop-input" type="number" value="${eq.w}" min="20" onchange="setEqDim(${eq.id}, 'w', this.value)" placeholder="Largura">
+                <input class="prop-input" type="number" value="${eq.h}" min="20" onchange="setEqDim(${eq.id}, 'h', this.value)" placeholder="Altura">
+            </div>
+        </div>
+        ` : ''}
+        <div class="prop-row">
+            <div class="prop-label">ROTAÇÃO: ${eq.rotation || 0}°</div>
+            <div style="display:flex; gap:4px;">
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEq(${eq.id}, -45)">↺ -45°</button>
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEq(${eq.id}, 45)">↻ +45°</button>
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="rotateEq(${eq.id}, 0)">0°</button>
+            </div>
+        </div>
+        <div class="prop-row">
+            <div class="prop-label">ENTRADAS (${inputs.length})</div>
+            <div class="port-list">${inPorts}</div>
+            <div style="display:flex;gap:4px;margin-top:4px">
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="addPort(${eq.id},'input')">+ ADD</button>
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="removePort(${eq.id},'input')">- REM</button>
+            </div>
+        </div>
+        <div class="prop-row">
+            <div class="prop-label">SAÍDAS (${outputs.length})</div>
+            <div class="port-list">${outPorts}</div>
+            <div style="display:flex;gap:4px;margin-top:4px">
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="addPort(${eq.id},'output')">+ ADD</button>
+                <button class="toolbar-btn" style="flex:1;padding:4px" onclick="removePort(${eq.id},'output')">- REM</button>
+            </div>
+        </div>
+        ${eq.type === 'medusa' ? `
+        <div class="prop-row">
+            <div id="medusa-info">🐙 SNAKE MULTICORE<br>Configure as vias acima.<br>Conecte outputs ao palco<br>e inputs ao FOH.</div>
+        </div>` : ''}
+        <div class="prop-row">
+            <div class="prop-label">NOTA</div>
+            <input class="prop-input" value="${eq.note || ''}" placeholder="ex: canal 1-8..." onchange="setEqNote(${eq.id},this.value)">
+        </div>
+        <button class="prop-btn swap" onclick="swapPorts(${eq.id})" style="margin-top:4px">↕ INVERTER ENTRADAS / SAÍDAS</button>
+        <button class="prop-btn danger" onclick="deleteEq(${eq.id})">🗑 DELETAR EQUIPAMENTO</button>
+    `;
+}
+
+function showCableProps(cable) {
+    const swatches = CABLE_COLORS.map((c, i) => `
+        <div class="cc-swatch ${c === cable.color ? 'active' : ''}" style="background:${c}"
+            onclick="setCableColor('${cable.id}','${c}',this)"></div>`).join('');
+            
+    document.getElementById('props-content').innerHTML = `
+        <div class="prop-title">⌁ CABO</div>
+        <div class="prop-row">
+            <div class="prop-label">LABEL</div>
+            <input class="prop-input" value="${cable.label || ''}" placeholder="ex: kick out..." onchange="setCableLabel(${cable.id},this.value)">
+        </div>
+        <div class="prop-row">
+            <div class="prop-label">COR DO CABO</div>
+            <div id="cable-color-picker">${swatches}</div>
+        </div>
+        <button class="prop-btn danger" onclick="deleteCable(${cable.id})">✕ REMOVER CABO</button>
+    `;
+}
+
+// ============================================================
+// MANIPULATION FUNCTIONS
+// ============================================================
+function setEqLabel(id, val) {
+    const eq = equipments.find(e => e.id === id);
+    if (eq) { eq.label = val; render(); save(); }
+}
+
+function setEqNote(id, val) {
+    const eq = equipments.find(e => e.id === id);
+    if (eq) { eq.note = val; save(); }
+}
+
+function setEqDim(id, dim, val) {
+    const eq = equipments.find(e => e.id === id);
+    if (eq) {
+        eq[dim] = Math.max(20, Number(val));
+        render();
+        save();
+    }
+}
+
+function rotateEq(id, angle) {
+    const eq = equipments.find(e => e.id === id);
+    if (eq) {
+        eq.rotation = (eq.rotation || 0) + angle;
+        render();
+        save();
+        showEqProps(eq);
+    }
+}
+
+function setEnvDim(id, dim, val) {
+    const env = environments.find(e => e.id === id);
+    if (env) {
+        env[dim] = Math.max(5, Number(val));
+        render();
+        save();
+    }
+}
+
+function rotateEnv(id, deg) {
+    const env = environments.find(e => e.id === id);
+    if (env) { 
+        env.rotation = (env.rotation || 0) + deg; 
+        render(); 
+        save(); 
+        showEnvProps(env);
+    }
+}
+
+function setEnvRotation(id, val) {
+    const env = environments.find(e => e.id === id);
+    if (env) { 
+        env.rotation = Number(val); 
+        render(); 
+        save(); 
+        showEnvProps(env);
+    }
+}
+
+function setEnvLabel(id, val) {
+    const env = environments.find(e => e.id === id);
+    if (env) { 
+        env.label = val; 
+        render(); 
+        save(); 
+    }
+}
+
+function setEnvColor(id, val) {
+    const env = environments.find(e => e.id === id);
+    if (env) { 
+        if (env.type === 'zone') {
+            const r = parseInt(val.substr(1,2), 16);
+            const g = parseInt(val.substr(3,2), 16);
+            const b = parseInt(val.substr(5,2), 16);
+            env.color = `rgba(${r},${g},${b},0.15)`;
+        } else {
+            env.color = val;
+        }
+        render(); 
+        save(); 
+    }
+}
+
+function renamePort(id, type, idx, val) {
+    const eq = equipments.find(e => e.id === id);
+    if (!eq) return;
+    const def = EQ_DEFS[eq.type];
+    if (type === 'input') {
+        if (!eq.inputs) eq.inputs = [...def.inputs];
+        eq.inputs[idx] = val;
+    } else {
+        if (!eq.outputs) eq.outputs = [...def.outputs];
+        eq.outputs[idx] = val;
+    }
+    render(); save();
+}
+
+function addPort(id, type) {
+    const eq = equipments.find(e => e.id === id);
+    if (!eq) return;
+    const def = EQ_DEFS[eq.type];
+    if (type === 'input') {
+        if (!eq.inputs) eq.inputs = [...def.inputs];
+        eq.inputs.push(`IN ${eq.inputs.length + 1}`);
+        if (eq.type !== 'cable_ramp') {
+            eq.h = Math.max(eq.h || def.h, 60);
+        }
+    } else {
+        if (!eq.outputs) eq.outputs = [...def.outputs];
+        eq.outputs.push(`OUT ${eq.outputs.length + 1}`);
+    }
+    showEqProps(eq); render(); save();
+}
+
+function removePort(id, type) {
+    const eq = equipments.find(e => e.id === id);
+    if (!eq) return;
+    const def = EQ_DEFS[eq.type];
+    if (type === 'input') {
+        if (!eq.inputs) eq.inputs = [...def.inputs];
+        if (eq.inputs.length > 0) eq.inputs.pop();
+    } else {
+        if (!eq.outputs) eq.outputs = [...def.outputs];
+        if (eq.outputs.length > 0) eq.outputs.pop();
+    }
+    showEqProps(eq); render(); save();
+}
+
+function swapPorts(id) {
+    const eq = equipments.find(e => e.id === id);
+    if (!eq) return;
+    eq.portsFlipped = !eq.portsFlipped;
+    showEqProps(eq);
+    render();
+    save();
+}
+
+function deleteEq(id) {
+    equipments = equipments.filter(e => e.id !== id);
+    cables = cables.filter(c => c.fromId !== id && c.toId !== id);
+    updateEqMap();
+    updateSortedEquipments();
+    selectedEq = null;
+    showNoSel();
+    render();
+    save();
+}
+
+function deleteEnv(id) {
+    environments = environments.filter(e => e.id !== id);
+    selectedEnv = null;
+    showNoSel();
+    render();
+    save();
+}
+
+function setCableColor(id, color, el) {
+    const cable = cables.find(c => c.id === +id);
+    if (cable) {
+        cable.color = color;
+        document.querySelectorAll('.cc-swatch').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        render(); save();
+    }
+}
+
+function setCableLabel(id, val) {
+    const cable = cables.find(c => c.id === id);
+    if (cable) { cable.label = val; save(); }
+}
+
+function deleteCable(id) {
+    cables = cables.filter(c => c.id !== id);
+    selectedCable = null;
+    showNoSel();
+    render(); save();
+}
+
+// ============================================================
+// CONTEXT MENU
+// ============================================================
+function showContextMenu(event) {
+    const pos = getCanvasPos(event);
+    const eq = hitTestEq(pos.x, pos.y);
+    if (eq) {
+        ctxTarget = eq;
+        selectEq(eq);
+        const menu = document.getElementById('ctx-menu');
+        menu.style.left = event.clientX + 'px';
+        menu.style.top = event.clientY + 'px';
+        menu.classList.add('show');
+        return;
+    }
+    
+    const wp = hitTestWaypoint(pos.x, pos.y);
+    if (wp) {
+        wp.cable.waypoints.splice(wp.wpIdx, 1);
+        render(); save();
+        return;
+    }
+    
+    const cable = hitTestCable(pos.x, pos.y);
+    if (cable) {
+        if (!cable.waypoints) cable.waypoints = [];
+        const worldPos = screenToWorld(pos.x, pos.y);
+        const data = getCableData(cable);
+        const pts = data ? data.pts : [];
+        let bestIdx = cable.waypoints.length;
+        
+        if (pts && pts.length > 2) {
+            let bestDist = Infinity;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const mx = (pts[i].x + pts[i+1].x) / 2;
+                const my = (pts[i].y + pts[i+1].y) / 2;
+                const d = Math.hypot(pos.x - mx, pos.y - my);
+                if (d < bestDist) { bestDist = d; bestIdx = i; }
+            }
+        }
+        cable.waypoints.splice(bestIdx, 0, { x: worldPos.x, y: worldPos.y });
+        selectedCable = cable;
+        showCableProps(cable);
+        render(); save();
+        return;
+    }
+    hideContextMenu();
+}
+
+function hideContextMenu() {
+    document.getElementById('ctx-menu').classList.remove('show');
+    ctxTarget = null;
+}
+
+function ctxDelete() { 
+    if (ctxTarget) {
+        if (ctxTarget.type === 'wall' || ctxTarget.type === 'zone') {
+            deleteEnv(ctxTarget.id);
+        } else {
+            deleteEq(ctxTarget.id); 
+        }
+    }
+    hideContextMenu(); 
+}
+
+function ctxDuplicate() {
+    if (!ctxTarget) return;
+    if (ctxTarget.type === 'wall' || ctxTarget.type === 'zone') {
+        const env = { 
+            ...ctxTarget, 
+            id: ++envIdCounter, 
+            x: ctxTarget.x + 30, 
+            y: ctxTarget.y + 30
+        };
+        environments.push(env);
+        selectedEnv = env;
+        showEnvProps(env);
+    } else {
+        const def = EQ_DEFS[ctxTarget.type];
+        const eq = { 
+            ...ctxTarget, 
+            id: ++eqIdCounter, 
+            x: ctxTarget.x + 30, 
+            y: ctxTarget.y + 30,
+            inputs: [...(ctxTarget.inputs || def.inputs)], 
+            outputs: [...(ctxTarget.outputs || def.outputs)], 
+            z: eqIdCounter,
+            rotation: ctxTarget.rotation || 0
+        };
+        equipments.push(eq);
+        updateEqMap();
+        updateSortedEquipments();
+        selectEq(eq);
+    }
+    hideContextMenu();
+    render();
+}
+
+function ctxBringFront() { 
+    if (ctxTarget && !ctxTarget.type) {
+        ctxTarget.z = ++eqIdCounter; 
+        updateSortedEquipments();
+        render(); 
+    }
+    hideContextMenu(); 
+}
+
+function ctxSendBack() { 
+    if (ctxTarget && !ctxTarget.type) {
+        ctxTarget.z = 0; 
+        updateSortedEquipments();
+        render(); 
+    }
+    hideContextMenu(); 
+}
+
+function ctxClearCables() {
+    if (!ctxTarget) return;
+    cables = cables.filter(c => c.fromId !== ctxTarget.id && c.toId !== ctxTarget.id);
+    render(); hideContextMenu();
+}
+
+document.addEventListener('click', () => hideContextMenu());
+document.addEventListener('keydown', e => {
+    if (e.key === 'Delete') {
+        if (selectedEq) deleteEq(selectedEq.id);
+        else if (selectedEnv) deleteEnv(selectedEnv.id);
+        else if (selectedCable) deleteCable(selectedCable.id);
+    }
+    if (e.key === 'Escape') { cableDrawing = false; cableStart = null; render(); }
+});
+
+// ============================================================
+// TOOLTIP
+// ============================================================
+function showTooltip(x, y, text) {
+    const t = document.getElementById('tooltip');
+    t.textContent = text;
+    t.style.left = (x + 12) + 'px';
+    t.style.top = (y - 20) + 'px';
+    t.style.display = 'block';
+}
+
+function hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+}
+
+// ============================================================
+// TOOLBAR ACTIONS
+// ============================================================
+function clearAllCables() { cables = []; selectedCable = null; render(); save(); }
+
+function clearAll() {
+    if (!confirm('Apagar TUDO?')) return;
+    equipments = []; cables = []; environments = []; selectedEq = null; selectedCable = null; selectedEnv = null;
+    updateEqMap();
+    updateSortedEquipments();
+    showNoSel(); render(); save();
+}
+
+function exportJSON() {
+    const data = JSON.stringify({ equipments, cables, environments }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'signal-flow.json';
+    a.click();
+}
+
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.equipments || !data.cables) {
+                alert('Arquivo inválido: faltam campos "equipments" ou "cables".');
+                return;
+            }
+            const unknownTypes = data.equipments.filter(eq => !EQ_DEFS[eq.type]).map(eq => eq.type);
+            if (unknownTypes.length > 0) {
+                alert(`Tipos desconhecidos no arquivo: ${[...new Set(unknownTypes)].join(', ')}`);
+                return;
+            }
+            equipments = data.equipments;
+            cables = data.cables || [];
+            environments = data.environments || [];
+            eqIdCounter = Math.max(0, ...equipments.map(e => e.id || 0), ...cables.map(c => c.id || 0), ...environments.map(e => e.id || 0));
+            cableIdCounter = eqIdCounter;
+            envIdCounter = eqIdCounter;
+            selectedEq = null;
+            selectedCable = null;
+            selectedEnv = null;
+            showNoSel();
+            
+            updateEqMap();
+            updateSortedEquipments();
+            
+            drawGrid();
+            render();
+        } catch (err) {
+            alert('Erro ao ler o arquivo JSON: ' + err.message);
+        }
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+}
+
+// ============================================================
+// STATUS
+// ============================================================
+function updateStatus() {
+    let hint = '';
+    if (currentMode === 'cable') hint = ' | Clique numa saída (▲) e arraste até uma entrada (▼)';
+    else if (cableDrawing) hint = ' | Solte sobre uma entrada (▼) para conectar';
+    else if (currentMode === 'env') hint = ' | Use o painel esquerdo para adicionar paredes ou zonas';
+    
+    document.getElementById('status-bar').textContent =
+        `MODO: ${currentMode.toUpperCase()} | ITENS: ${equipments.length + environments.length} | CABOS: ${cables.length} | ZOOM: ${Math.round(viewScale * 100)}%${hint}`;
+}
+
+// ============================================================
+// THEME
+// ============================================================
+function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+let isDark = localStorage.getItem('signal-flow-theme') !== 'light';
+
+function applyTheme() {
+    const root = document.documentElement;
+    const btn = document.getElementById('theme-toggle');
+    if (isDark) {
+        root.removeAttribute('data-theme');
+        btn.textContent = '🌙';
+        btn.title = 'Mudar para tema claro';
+    } else {
+        root.setAttribute('data-theme', 'light');
+        btn.textContent = '☀️';
+        btn.title = 'Mudar para tema escuro';
+    }
+}
+
+function toggleTheme() {
+    isDark = !isDark;
+    localStorage.setItem('signal-flow-theme', isDark ? 'dark' : 'light');
+    applyTheme();
+    drawGrid();
+    render();
+}
+
+applyTheme();
+
+// ============================================================
+// CABLE COLOR PICKER IN TOOLBAR
+// ============================================================
+const topbar = document.getElementById('topbar');
+(function() {
+    const sep = document.createElement('div'); sep.className = 'sep';
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:11px;color:var(--text-dim);letter-spacing:1px;white-space:nowrap';
+    label.textContent = 'COR:';
+    topbar.insertBefore(sep, document.getElementById('status-bar'));
+    topbar.insertBefore(label, document.getElementById('status-bar'));
+    
+    const picker = document.createElement('div');
+    picker.style.cssText = 'display:flex;gap:3px;align-items:center';
+    
+    CABLE_COLORS.forEach((c, i) => {
+        const sw = document.createElement('div');
+        sw.style.cssText = `width:16px;height:16px;background:${c};cursor:pointer;border:2px solid ${i === 0 ? '#fff' : 'transparent'};border-radius:2px`;
+        sw.onclick = () => {
+            currentCableColor = c;
+            picker.querySelectorAll('div').forEach((s, j) => s.style.borderColor = j === i ? '#fff' : 'transparent');
+        };
+        picker.appendChild(sw);
+    });
+    topbar.insertBefore(picker, document.getElementById('status-bar'));
+})();
+
+// ============================================================
+// AUTOSAVE / AUTOLOAD
+// ============================================================
+const SAVE_KEY = 'signal-flow-state';
+let saveTimer = null;
+
+function save() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+        try {
+            const state = JSON.stringify({ equipments, cables, environments, eqIdCounter, cableIdCounter, envIdCounter, viewX, viewY, viewScale });
+            localStorage.setItem(SAVE_KEY, state);
+            console.log('[save] ok —', equipments.length, 'eq,', environments.length, 'env,', cables.length, 'cabos');
+        } catch(e) { console.warn('[save] falhou:', e); }
+    }, 500);
+}
+
+function loadSaved() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) { console.log('[load] nada salvo'); return false; }
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data.equipments) || !Array.isArray(data.cables)) return false;
+        
+        equipments = data.equipments.filter(e => EQ_DEFS[e.type]);
+        cables = data.cables || [];
+        environments = data.environments || [];
+        eqIdCounter = data.eqIdCounter || Math.max(0, ...equipments.map(e => e.id || 0), ...cables.map(c => c.id || 0), ...environments.map(e => e.id || 0));
+        cableIdCounter = data.cableIdCounter || eqIdCounter;
+        envIdCounter = data.envIdCounter || eqIdCounter;
+        viewX = data.viewX || 0;
+        viewY = data.viewY || 0;
+        viewScale = data.viewScale || 1;
+        
+        updateEqMap();
+        updateSortedEquipments();
+        
+        console.log('[load] ok —', equipments.length, 'eq,', environments.length, 'env,', cables.length, 'cabos');
+        return true;
+    } catch(e) { console.warn('[load] falhou:', e); return false; }
+}
+
+// ============================================================
+// STARTER KIT
+// ============================================================
+function buildStarter() {
+    const types = ['guitar', 'vocal', 'keys', 'di', 'pedalboard', 'medusa', 'console', 'monitor', 'pa'];
+    const positions = [[80,100], [220,100], [360,100], [110,230], [260,230], [80,400], [320,440], [150,560], [420,580]];
+    
+    types.forEach((type, i) => {
+        const def = EQ_DEFS[type];
+        equipments.push({
+            id: ++eqIdCounter, type, x: positions[i][0], y: positions[i][1],
+            w: def.w, h: def.h, label: def.label, color: def.color,
+            inputs: [...def.inputs], outputs: [...def.outputs], z: eqIdCounter, note: '',
+            rotation: 0
+        });
+    });
+    updateEqMap();
+    updateSortedEquipments();
+}
+
+if (!loadSaved()) {
+    buildStarter();
+    save();
+}
+
+selectedEq = null;
+selectedCable = null;
+selectedEnv = null;
+showNoSel();
+resizeCanvases();
+</script>
+</body>
+</html>
