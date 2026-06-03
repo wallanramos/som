@@ -1353,7 +1353,7 @@ function addEnvironment(type) {
 // CANVAS MOUSE EVENTS
 // ============================================================
 function getCanvasPos(event) {
-    const rect = canvasWrap.getBoundingClientRect();
+    const rect = mainCanvas.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 }
 
