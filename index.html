@@ -486,6 +486,7 @@ body {
     <div class="sep"></div>
     <div class="mode-group">
         <button class="toolbar-btn active" id="btn-select" onclick="setMode('select')">✥ SELECIONAR</button>
+        <button class="toolbar-btn" id="btn-env" onclick="setMode('env')">🏗 AMBIENTE</button>
     </div>
     <div class="sep"></div>
     <button class="toolbar-btn" onclick="clearAllCables()">✕ LIMPAR CABOS</button>
@@ -729,6 +730,7 @@ let showGrid = true;
 let gridScale = 1; // escala da grade em metros (1 = 40px por metro)
 let isDragging = false;
 let dragEq = null;
+let dragEnv = null;
 let dragOffX = 0, dragOffY = 0;
 let cableDrawing = false;
 let cableStart = null;
@@ -1245,7 +1247,7 @@ function drawPorts(eq, portType, sx, sy, eqW, eqH, color) {
     const flipped = eq.portsFlipped;
     const py = (portType === 'input') ? (flipped ? sy + eqH : sy) : (flipped ? sy : sy + eqH);
     const portR = Math.max(5, 6.5 * viewScale);
-    const highlight = cableDrawing;
+    const highlight = (currentMode === 'cable' || cableDrawing);
     
     for (let i = 0; i < count; i++) {
         const px = sx + spacing * (i + 1);
@@ -1514,12 +1516,40 @@ function canvasMouseDown(event) {
     const pos = getCanvasPos(event);
     hideContextMenu();
     
-    if (event.button === 1) {
+    if (currentMode === 'pan' || (event.button === 1)) {
         isPanning = true;
         panStartX = event.clientX;
         panStartY = event.clientY;
         panViewX = viewX;
         panViewY = viewY;
+        return;
+    }
+    
+    if (currentMode === 'env') {
+        const env = hitTestEnv(pos.x, pos.y);
+        if (env) {
+            selectedEnv = env;
+            selectedEq = null;
+            selectedCable = null;
+            showEnvProps(env);
+            isDragging = true;
+            dragEnv = env;
+            const wp = screenToWorld(pos.x, pos.y);
+            dragOffX = wp.x - env.x;
+            dragOffY = wp.y - env.y;
+            render();
+            return;
+        }
+    }
+
+    if (currentMode === 'cable') {
+        const port = hitTestPort(pos.x, pos.y);
+        if (port) {
+            cableDrawing = true;
+            cableStart = port;
+            cableMouseX = pos.x;
+            cableMouseY = pos.y;
+        }
         return;
     }
     
@@ -1609,6 +1639,13 @@ function canvasMouseMove(event) {
         return;
     }
 
+    if (isDragging && dragEnv) {
+        const wp = screenToWorld(pos.x, pos.y);
+        dragEnv.x = wp.x - dragOffX;
+        dragEnv.y = wp.y - dragOffY;
+        render();
+        return;
+    }
     
     if (cableDrawing) {
         cableMouseX = pos.x;
@@ -1657,8 +1694,9 @@ function canvasMouseUp(event) {
     isPanning = false;
     isDragging = false;
     
-    if (dragEq) { save(); }
+    if (dragEq || dragEnv) { save(); }
     dragEq = null;
+    dragEnv = null;
     
     if (isDraggingWaypoint) {
         isDraggingWaypoint = false;
@@ -1737,7 +1775,7 @@ function setMode(mode) {
     currentMode = mode;
     document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`btn-${mode}`)?.classList.add('active');
-    mainCanvas.style.cursor = 'default';
+    mainCanvas.style.cursor = mode === 'pan' ? 'grab' : 'default';
     
     const envPanel = document.getElementById('env-panel');
     const equipPanel = document.getElementById('equip-panel');
@@ -1746,12 +1784,13 @@ function setMode(mode) {
     const monPanel = document.getElementById('mon-panel');
     const accPanel = document.getElementById('acc-panel');
     
-    if (envPanel) envPanel.style.display = 'none';
-    if (equipPanel) equipPanel.style.display = 'block';
-    if (procPanel) procPanel.style.display = 'block';
-    if (rackPanel) rackPanel.style.display = 'block';
-    if (monPanel) monPanel.style.display = 'block';
-    if (accPanel) accPanel.style.display = 'block';
+    const isEnv = mode === 'env';
+    if (envPanel) envPanel.style.display = isEnv ? 'block' : 'none';
+    if (equipPanel) equipPanel.style.display = isEnv ? 'none' : 'block';
+    if (procPanel) procPanel.style.display = isEnv ? 'none' : 'block';
+    if (rackPanel) rackPanel.style.display = isEnv ? 'none' : 'block';
+    if (monPanel) monPanel.style.display = isEnv ? 'none' : 'block';
+    if (accPanel) accPanel.style.display = isEnv ? 'none' : 'block';
 }
 
 // Inicializa estado do botão da grade
@@ -2297,7 +2336,9 @@ function importJSON(event) {
 // ============================================================
 function updateStatus() {
     let hint = '';
+    if (currentMode === 'cable') hint = ' | Clique numa saída (▲) e arraste até uma entrada (▼)';
     else if (cableDrawing) hint = ' | Solte sobre uma entrada (▼) para conectar';
+    else if (currentMode === 'env') hint = ' | Use o painel esquerdo para adicionar paredes ou zonas';
     
     document.getElementById('status-bar').textContent =
         `MODO: ${currentMode.toUpperCase()} | ITENS: ${equipments.length + environments.length} | CABOS: ${cables.length} | ZOOM: ${Math.round(viewScale * 100)}%${hint}`;
