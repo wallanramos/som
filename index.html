@@ -2394,14 +2394,38 @@ function toggleGrid() {
         btn.textContent = '✕ GRADE';
     }
     drawGrid();
+    save();
 }
 
 function updateGridScale(val) {
     gridScale = parseFloat(val);
     drawGrid();
+    save();
 }
 
-applyTheme();
+function applyTheme() {
+    // Atualiza slider da grade com valor atual
+    const slider = document.querySelector('input[type="range"][oninput*="updateGridScale"]');
+    if (slider) slider.value = gridScale;
+    // Atualiza estado do botão da grade
+    const btn = document.getElementById('btn-grid');
+    if (btn) {
+        if (showGrid) btn.classList.add('active');
+        else btn.classList.remove('active');
+    }
+    // Aplica tema
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('theme-toggle');
+    if (isDark) {
+        root.removeAttribute('data-theme');
+        themeBtn.textContent = '🌙';
+        themeBtn.title = 'Mudar para tema claro';
+    } else {
+        root.setAttribute('data-theme', 'light');
+        themeBtn.textContent = '☀️';
+        themeBtn.title = 'Mudar para tema escuro';
+    }
+}
 
 // ============================================================
 // CABLE COLOR PICKER IN TOOLBAR
@@ -2440,7 +2464,7 @@ function save() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
         try {
-            const state = JSON.stringify({ equipments, cables, environments, eqIdCounter, cableIdCounter, envIdCounter, viewX, viewY, viewScale });
+            const state = JSON.stringify({ equipments, cables, environments, eqIdCounter, cableIdCounter, envIdCounter, viewX, viewY, viewScale, showGrid, gridScale });
             localStorage.setItem(SAVE_KEY, state);
             console.log('[save] ok —', equipments.length, 'eq,', environments.length, 'env,', cables.length, 'cabos');
         } catch(e) { console.warn('[save] falhou:', e); }
@@ -2463,6 +2487,8 @@ function loadSaved() {
         viewX = data.viewX || 0;
         viewY = data.viewY || 0;
         viewScale = data.viewScale || 1;
+        showGrid = data.showGrid !== undefined ? data.showGrid : true;
+        gridScale = data.gridScale !== undefined ? data.gridScale : 1;
         
         updateEqMap();
         updateSortedEquipments();
@@ -2496,6 +2522,9 @@ if (!loadSaved()) {
     buildStarter();
     save();
 }
+
+// Aplica tema e atualiza UI da grade após carregar
+applyTheme();
 
 selectedEq = null;
 selectedCable = null;
