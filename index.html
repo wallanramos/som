@@ -28,6 +28,7 @@
            style="width:100px;margin-left:8px" oninput="updateGridScale(this.value)" 
            title="Escala da grade (metros)">
     <div id="status-bar">MODO: SELECIONAR | EQUIPAMENTOS: 0 | CABOS: 0</div>
+    <button class="toolbar-btn" id="btn-spl" onclick="toggleSPLMapping()">🔥 SPL: OFF</button>
 </div>
 
 <div id="main">
@@ -166,6 +167,15 @@
                 </div>
             </div>
         </div>
+        <div class="panel-section" id="speaker-panel">
+            <div class="panel-title">SISTEMAS DE SOM</div>
+            <div class="item-list">
+                <div class="eq-item" onclick="addSpeakerFromPanel()" style="cursor:pointer">
+                    <div class="eq-dot" style="background:#ff7755"></div>
+                    <div><div>ADICIONAR CAIXA</div><div class="eq-sub">Configurar sistema personalizado</div></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="canvas-wrap"
@@ -205,6 +215,7 @@
 <div id="tooltip"></div>
 
 <script src="script.js"></script>
+<script src="speaker-system.js"></script>
 </body>
 </html>
 
