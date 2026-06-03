@@ -498,6 +498,11 @@ body {
     <input type="file" id="import-input" accept=".json" style="display:none" onchange="importJSON(event)">
     <div class="sep"></div>
     <button id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
+    <div class="sep"></div>
+    <button class="toolbar-btn" id="btn-grid" onclick="toggleGrid()">▦ GRADE</button>
+    <input type="range" id="grid-scale-slider" min="0.5" max="4" step="0.1" value="1" 
+           style="width:100px;margin-left:8px" oninput="updateGridScale(this.value)" 
+           title="Escala da grade (metros)">
     <div id="status-bar">MODO: SELECIONAR | EQUIPAMENTOS: 0 | CABOS: 0</div>
 </div>
 
@@ -723,6 +728,8 @@ let eqIdCounter = 0;
 let cableIdCounter = 0;
 let envIdCounter = 0;
 let viewX = 0, viewY = 0, viewScale = 1;
+let showGrid = true;
+let gridScale = 1; // escala da grade em metros (1 = 40px por metro)
 let isDragging = false;
 let dragEq = null;
 let dragEnv = null;
@@ -779,10 +786,14 @@ resizeCanvases();
 function drawGrid() {
     const w = gridCanvas.width, h = gridCanvas.height;
     gctx.clearRect(0, 0, w, h);
+    
+    if (!showGrid) return;
+    
     gctx.strokeStyle = getCSSVar('--grid-line');
     gctx.lineWidth = 1;
     
-    const gSize = 40 * viewScale;
+    // gridScale define metros por grade (1 = 1 metro = 40px base)
+    const gSize = 40 * viewScale * gridScale;
     const offX = (viewX % gSize);
     const offY = (viewY % gSize);
     
@@ -797,6 +808,20 @@ function drawGrid() {
         gctx.moveTo(0, y); 
         gctx.lineTo(w, y); 
         gctx.stroke();
+    }
+    
+    // Desenha marcadores de metro nas bordas
+    gctx.fillStyle = getCSSVar('--text-dim');
+    gctx.font = '10px "Share Tech Mono", monospace';
+    gctx.textAlign = 'center';
+    for (let m = 0; m * gSize + offX < w; m++) {
+        const x = m * gSize + offX;
+        gctx.fillText(`${m}m`, x, 14);
+    }
+    gctx.textAlign = 'left';
+    for (let m = 0; m * gSize + offY < h; m++) {
+        const y = m * gSize + offY;
+        gctx.fillText(`${m}m`, 6, y + 12);
     }
     
     drawZone(gctx, 'PALCO', 80, 80, w * 0.9 - 80, h * 0.55 - 80, getCSSVar('--zone-fill-stage'));
@@ -1773,6 +1798,12 @@ function setMode(mode) {
     if (accPanel) accPanel.style.display = isEnv ? 'none' : 'block';
 }
 
+// Inicializa estado do botão da grade
+(function initGridButton() {
+    const btn = document.getElementById('btn-grid');
+    if (btn && showGrid) btn.classList.add('active');
+})();
+
 // ============================================================
 // PROPERTIES PANEL
 // ============================================================
@@ -2347,6 +2378,27 @@ function toggleTheme() {
     applyTheme();
     drawGrid();
     render();
+}
+
+// ============================================================
+// GRID CONTROLS
+// ============================================================
+function toggleGrid() {
+    showGrid = !showGrid;
+    const btn = document.getElementById('btn-grid');
+    if (showGrid) {
+        btn.classList.add('active');
+        btn.textContent = '▦ GRADE';
+    } else {
+        btn.classList.remove('active');
+        btn.textContent = '✕ GRADE';
+    }
+    drawGrid();
+}
+
+function updateGridScale(val) {
+    gridScale = parseFloat(val);
+    drawGrid();
 }
 
 applyTheme();
