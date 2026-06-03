@@ -48,6 +48,7 @@ let envIdCounter = 0;
 let viewX = 0, viewY = 0, viewScale = 1;
 let showGrid = true;
 let gridScale = 1; // escala da grade em metros (1 = 40px por metro)
+let showSPL = false; // controle de exibição do SPL Mapping
 let isDragging = false;
 let dragEq = null;
 let dragEnv = null;
@@ -236,6 +237,11 @@ function render() {
         drawEnvironment(env, env === selectedEnv);
     }
     
+    // 1.5. Draw SPL Mapping (after environments, before cables)
+    if (showSPL) {
+        drawSPLMapping();
+    }
+    
     // 2. Draw Cables
     for (const cable of cables) {
         drawCable(cable, cable === selectedCable);
@@ -325,6 +331,146 @@ function drawEnvironment(env, selected) {
     }
     
     ctx.restore();
+}
+
+// ============================================================
+// SPL MAPPING
+// ============================================================
+function drawSPLMapping() {
+    // Filtra apenas caixas de som ligadas
+    const activeSpeakers = equipments.filter(eq => eq.def.isSpeaker && eq.speakerConfig && eq.speakerConfig.enabled);
+    
+    if (activeSpeakers.length === 0) return;
+    
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    
+    for (const speaker of activeSpeakers) {
+        drawSpeakerSPL(speaker);
+    }
+    
+    ctx.restore();
+}
+
+function drawSpeakerSPL(speaker) {
+    const config = speaker.speakerConfig;
+    if (!config || !config.enabled) return;
+    
+    // Dados base por tipo de falante
+    const speakerData = {
+        'full': { spl: 95, coverage: 90, colorBase: [255, 100, 50] },
+        'line': { spl: 105, coverage: 60, colorBase: [255, 80, 40] },
+        'point': { spl: 98, coverage: 80, colorBase: [255, 120, 60] },
+        'monitor': { spl: 92, coverage: 70, colorBase: [255, 140, 80] },
+        'column': { spl: 100, coverage: 120, colorBase: [255, 90, 50] }
+    };
+    
+    const data = speakerData[config.type] || speakerData['full'];
+    const quantity = config.quantity || 1;
+    const power = config.power || 500;
+    
+    // Calcula SPL máximo: SPL_base + 10*log10(quantidade) + 10*log10(potencia/1000)
+    const maxSPL = data.spl + 10 * Math.log10(quantity) + 10 * Math.log10(power / 1000);
+    
+    // Posição e rotação da caixa
+    const cx = speaker.x + speaker.def.w / 2;
+    const cy = speaker.y + speaker.def.h / 2;
+    const rotation = (speaker.rotation || 0) * Math.PI / 180;
+    
+    // Raio máximo de cobertura (baseado no SPL - quanto maior SPL, maior alcance)
+    const maxRadius = Math.min(30, maxSPL * 0.25) * 40; // em pixels (aproximadamente metros * 40)
+    
+    // Ângulo de cobertura
+    const coverageRad = (data.coverage * Math.PI / 180) / 2;
+    
+    // Desenha o cone de cobertura com gradiente de SPL
+    const steps = 50;
+    for (let r = 0; r <= maxRadius; r += maxRadius / steps) {
+        const ratio = r / maxRadius;
+        const splAtDistance = maxSPL - 20 * Math.log10(ratio + 0.01); // Lei do inverso do quadrado
+        
+        // Normaliza SPL para cor (faixa típica: 60-120 dB)
+        const splNormalized = Math.max(0, Math.min(1, (splAtDistance - 60) / 60));
+        
+        // Interpola cor baseada no SPL (verde->amarelo->laranja->vermelho)
+        let r_color, g_color, b_color;
+        if (splNormalized > 0.66) {
+            // Vermelho -> Laranja
+            const t = (splNormalized - 0.66) / 0.34;
+            r_color = 255;
+            g_color = Math.floor(50 + t * 100);
+            b_color = Math.floor(50 - t * 50);
+        } else if (splNormalized > 0.33) {
+            // Laranja -> Amarelo
+            const t = (splNormalized - 0.33) / 0.33;
+            r_color = 255;
+            g_color = Math.floor(150 + t * 105);
+            b_color = Math.floor(100 - t * 100);
+        } else {
+            // Amarelo -> Verde
+            const t = splNormalized / 0.33;
+            r_color = Math.floor(255 - t * 155);
+            g_color = 255;
+            b_color = Math.floor(200 - t * 200);
+        }
+        
+        const alpha = 0.15 * (1 - ratio * 0.5);
+        ctx.fillStyle = `rgba(${r_color}, ${g_color}, ${b_color}, ${alpha})`;
+        
+        // Desenha setor circular
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        for (let angle = -coverageRad; angle <= coverageRad; angle += 0.05) {
+            const actualAngle = rotation + angle;
+            const x = cx + Math.cos(actualAngle) * r;
+            const y = cy + Math.sin(actualAngle) * r;
+            ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Desenha linhas de ângulo de cobertura
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(rotation - coverageRad) * maxRadius, cy + Math.sin(rotation - coverageRad) * maxRadius);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(rotation + coverageRad) * maxRadius, cy + Math.sin(rotation + coverageRad) * maxRadius);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Desenha arcos de distância (5m, 10m, 15m, 20m)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.font = '10px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.textAlign = 'center';
+    
+    for (let m = 5; m <= 20; m += 5) {
+        const radius = m * 40; // 40px = 1 metro
+        if (radius > maxRadius) break;
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, rotation - coverageRad, rotation + coverageRad);
+        ctx.stroke();
+        
+        // Label de distância
+        const labelX = cx + Math.cos(rotation) * radius;
+        const labelY = cy + Math.sin(rotation) * radius;
+        ctx.fillText(`${m}m`, labelX, labelY - 2);
+    }
+    
+    // Desenha ponto central e label com SPL máximo
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(`${maxSPL.toFixed(1)}dB`, cx, cy - 10);
 }
 
 function getCableData(cable) {
@@ -1817,6 +1963,20 @@ function toggleGrid() {
         btn.textContent = '✕ GRADE';
     }
     drawGrid();
+    save();
+}
+
+function toggleSPL() {
+    showSPL = !showSPL;
+    const btn = document.getElementById('btn-spl');
+    if (showSPL) {
+        btn.classList.add('active');
+        btn.textContent = '🔥 SPL: ON';
+    } else {
+        btn.classList.remove('active');
+        btn.textContent = '🔥 SPL: OFF';
+    }
+    render();
     save();
 }
 
