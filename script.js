@@ -1744,33 +1744,6 @@ function applyTheme() {
 }
 
 // ============================================================
-// CABLE COLOR PICKER IN TOOLBAR
-// ============================================================
-const topbar = document.getElementById('topbar');
-(function() {
-    const sep = document.createElement('div'); sep.className = 'sep';
-    const label = document.createElement('span');
-    label.style.cssText = 'font-size:11px;color:var(--text-dim);letter-spacing:1px;white-space:nowrap';
-    label.textContent = 'COR:';
-    topbar.insertBefore(sep, document.getElementById('status-bar'));
-    topbar.insertBefore(label, document.getElementById('status-bar'));
-    
-    const picker = document.createElement('div');
-    picker.style.cssText = 'display:flex;gap:3px;align-items:center';
-    
-    CABLE_COLORS.forEach((c, i) => {
-        const sw = document.createElement('div');
-        sw.style.cssText = `width:16px;height:16px;background:${c};cursor:pointer;border:2px solid ${i === 0 ? '#fff' : 'transparent'};border-radius:2px`;
-        sw.onclick = () => {
-            currentCableColor = c;
-            picker.querySelectorAll('div').forEach((s, j) => s.style.borderColor = j === i ? '#fff' : 'transparent');
-        };
-        picker.appendChild(sw);
-    });
-    topbar.insertBefore(picker, document.getElementById('status-bar'));
-})();
-
-// ============================================================
 // AUTOSAVE / AUTOLOAD
 // ============================================================
 const SAVE_KEY = 'signal-flow-state';
