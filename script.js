@@ -140,10 +140,6 @@ function drawGrid() {
         const y = m * gSize + offY;
         gctx.fillText(`${m}m`, 6, y + 12);
     }
-    
-    drawZone(gctx, 'PALCO', 80, 80, w * 0.9 - 80, h * 0.55 - 80, getCSSVar('--zone-fill-stage'));
-    drawZone(gctx, 'FOH', 80, h * 0.65, w * 0.45 - 80, h * 0.3 - 20, getCSSVar('--zone-fill-foh'));
-    drawZone(gctx, 'MONITOR WORLD', w * 0.5, h * 0.65, w * 0.4, h * 0.3 - 20, getCSSVar('--zone-fill-mon'));
 }
 
 function drawZone(c, label, x, y, w, h, fill) {
